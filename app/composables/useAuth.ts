@@ -1,5 +1,5 @@
 // Importa las funciones necesarias de Firebase para la autenticación
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 // Importa las funciones necesarias de Firebase para Firestore
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 // Importa el modelo de usuario 
@@ -56,28 +56,8 @@ export const useAuth = () => {
     }
   }
 
-  //Persiste la sesión del usuario; cuando inicia, cierra y  refresca la sessión.
-  const initAuthListener = () => {
-    onAuthStateChanged($firebaseAuth, async (firebaseUser) => {
-        // Si esta autenticado lo busca
-      if (firebaseUser) {
-        const userRef = doc($firestore, 'users', firebaseUser.uid)
-        const userSnap = await getDoc(userRef)
-        if (userSnap.exists()) {
-          authStore.setUser(userSnap.data() as User)
-        }
-        // No existe, crea nuevo perfil
-      } else {
-        authStore.setUser(null)
-      }
-      // Indica que la carga de la sesión ha terminado
-      authStore.setLoading(false)
-    })
-  }
-
   return {
     loginWithGoogle,
-    logout,
-    initAuthListener
+    logout
   }
 }
