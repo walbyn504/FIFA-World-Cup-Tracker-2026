@@ -35,7 +35,7 @@
               <NuxtLink
                   :to="`/teams/${team.id}`"
                   title="Ver equipo"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white transition hover:bg-white/20"
+                  class="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/25 text-white transition hover:bg-white/35"
               >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
@@ -44,7 +44,7 @@
               </NuxtLink>
               <button
                   title="Editar equipo"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-[#D4AF37]/50 bg-[#D4AF37]/15 text-[#D4AF37] transition hover:bg-[#D4AF37]/25"
+                  class="flex h-9 w-9 items-center justify-center rounded-full border border-[#D4AF37] bg-[#D4AF37]/35 text-[#D4AF37] transition hover:bg-[#D4AF37]/50"
                   @click="openEditModal(team)"
               >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -54,7 +54,7 @@
               </button>
               <button
                   title="Eliminar equipo"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-400/50 bg-red-500/15 text-red-300 transition hover:bg-red-500/25"
+                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50"
                   @click="askDelete(team.id)"
               >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -92,6 +92,7 @@
 import type { Team } from '~~/shared/types/team'
 
 const { getAllTeams, createTeam, updateTeam, deleteTeam } = useTeams()
+const { success, error } = useNotify()
 
 const teams = ref<(Team & { id: string })[]>([])
 const isLoading = ref(true)
@@ -105,8 +106,13 @@ const teamBeingEdited = ref<(Team & { id: string }) | null>(null)
 
 const loadTeams = async () => {
   isLoading.value = true
-  teams.value = await getAllTeams()
-  isLoading.value = false
+  try {
+    teams.value = await getAllTeams()
+  } catch (err) {
+    error('No se pudieron cargar los equipos. Intenta de nuevo.')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const openCreateModal = () => {
@@ -121,13 +127,19 @@ const openEditModal = (team: Team & { id: string }) => {
 
 // Decide si el submit del modal significa crear o actualizar
 const handleSubmit = async (team: Team) => {
-  if (teamBeingEdited.value) {
-    await updateTeam(teamBeingEdited.value.id, team)
-  } else {
-    await createTeam(team)
+  const isEditing = !!teamBeingEdited.value
+  try {
+    if (isEditing) {
+      await updateTeam(teamBeingEdited.value!.id, team)
+    } else {
+      await createTeam(team)
+    }
+    isModalOpen.value = false
+    await loadTeams()
+    success(isEditing ? 'Equipo actualizado correctamente.' : 'Equipo creado correctamente.')
+  } catch (err) {
+    error(isEditing ? 'No se pudo actualizar el equipo.' : 'No se pudo crear el equipo.')
   }
-  isModalOpen.value = false
-  await loadTeams()
 }
 
 const askDelete = (id: string) => {
@@ -137,10 +149,16 @@ const askDelete = (id: string) => {
 
 const handleDelete = async () => {
   if (!teamToDelete.value) return
-  await deleteTeam(teamToDelete.value)
-  isConfirmOpen.value = false
-  teamToDelete.value = null
-  await loadTeams()
+  try {
+    await deleteTeam(teamToDelete.value)
+    await loadTeams()
+    success('Equipo eliminado correctamente.')
+  } catch (err) {
+    error('No se pudo eliminar el equipo.')
+  } finally {
+    isConfirmOpen.value = false
+    teamToDelete.value = null
+  }
 }
 
 onMounted(loadTeams)
