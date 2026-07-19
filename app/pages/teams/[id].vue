@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#04140D] px-6 py-10 text-[#F5F0E6]">
+  <div class="min-h-screen px-6 py-10 text-[#F5F0E6]">
     <div class="mx-auto max-w-2xl">
       <NuxtLink to="/teams" class="text-sm text-[#D4AF37] hover:underline">
         ← Volver a selecciones
@@ -7,7 +7,7 @@
 
       <p v-if="isLoading" class="mt-6 text-white/60">Cargando equipo...</p>
 
-      <div v-else-if="team" class="mt-6 rounded-3xl border border-white/15 bg-white/5 p-8">
+      <UiGlassCard v-else-if="team" class="mt-6 w-full" content-class="text-left px-8 py-8">
         <div class="flex items-center gap-4">
           <img
             v-if="team.flag"
@@ -42,7 +42,7 @@
         >
           Ver plantilla de jugadores →
         </NuxtLink>
-      </div>
+      </UiGlassCard>
 
       <p v-else class="mt-6 text-white/60">Equipo no encontrado.</p>
     </div>

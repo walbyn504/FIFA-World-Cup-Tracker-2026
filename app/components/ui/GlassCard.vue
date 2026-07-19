@@ -1,13 +1,21 @@
 <template>
-  <div class="glass-card relative w-full max-w-md overflow-hidden bg-gradient-to-b from-white/20 via-white/10 to-white/5 px-8 py-10 backdrop-blur-xl backdrop-saturate-125">
+  <div class="glass-card relative overflow-hidden bg-gradient-to-b from-white/20 via-white/10 to-white/5 backdrop-blur-xl backdrop-saturate-125">
     <div class="glass-sheen pointer-events-none absolute" />
-    <div class="relative z-10 flex flex-col items-center gap-6 text-center">
+    <div class="relative z-10" :class="contentClass">
       <slot />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+withDefaults(
+  defineProps<{
+    contentClass?: string
+  }>(),
+  {
+    contentClass: 'flex flex-col items-center gap-6 text-center px-8 py-10'
+  }
+)
 </script>
 
 <style scoped>

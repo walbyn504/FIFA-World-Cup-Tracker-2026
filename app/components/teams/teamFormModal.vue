@@ -5,8 +5,8 @@
       class="fixed inset-0 z-[100] flex items-center justify-center bg-[#04140D]/70 backdrop-blur-sm"
       @click.self="$emit('close')"
     >
-      <div class="w-full max-w-md rounded-3xl border border-white/20 bg-gradient-to-b from-white/20 via-white/10 to-white/5 px-8 py-8 backdrop-blur-xl backdrop-saturate-150 shadow-2xl text-[#F5F0E6]">
-        <h2 class="mb-5 font-['Bebas_Neue'] text-2xl tracking-wide">
+      <UiGlassCard class="w-full max-w-md" content-class="text-left px-8 py-8">
+        <h2 class="mb-5 font-['Bebas_Neue'] text-2xl tracking-wide text-white">
           {{ isEditing ? 'Editar equipo' : 'Nuevo equipo' }}
         </h2>
 
@@ -81,7 +81,7 @@
             </button>
           </div>
         </form>
-      </div>
+      </UiGlassCard>
     </div>
   </Teleport>
 </template>

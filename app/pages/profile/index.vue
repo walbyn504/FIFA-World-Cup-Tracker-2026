@@ -1,11 +1,6 @@
 <template>
-  <div
-    class="relative flex min-h-screen items-center justify-center bg-cover bg-center px-4"
-    style="background-image: url('/fondo-mundial.jpg')"
-  >
-    <div class="absolute inset-0 bg-black/25" />
-
-    <UiGlassCard v-if="authStore.user" class="relative z-10">
+  <div class="flex min-h-screen items-center justify-center px-4">
+    <UiGlassCard v-if="authStore.user" class="w-full max-w-md">
       <div class="flex h-20 w-20 items-center justify-center rounded-full border-2 border-yellow-500 bg-gradient-to-br from-emerald-700 to-emerald-950 text-3xl font-bold text-yellow-200">
         {{ authStore.user.name.charAt(0) }}
       </div>
