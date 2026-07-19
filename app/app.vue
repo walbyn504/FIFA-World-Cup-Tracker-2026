@@ -21,7 +21,9 @@
         </svg>
       </button>
     </header>
-    <NuxtPage />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </div>
 </template>
 
