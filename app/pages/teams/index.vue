@@ -38,7 +38,7 @@
             </button>
             <button
                 class="rounded-lg border border-red-400/40 px-3 py-1.5 text-sm text-red-300 hover:bg-red-400/10"
-                @click="handleDelete(team.id)"
+                @click="askDelete(team.id)"
             >
                 Eliminar
             </button>
@@ -53,6 +53,14 @@
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
+
+    <UiConfirmDilog
+      :visible="isConfirmOpen"
+      title="¿Eliminar equipo?"
+      message="Esta acción no se puede deshacer."
+      @cancel="isConfirmOpen = false"
+      @confirm="handleDelete"
+    />
   </div>
 </template>
 
@@ -64,6 +72,8 @@ const { getAllTeams, createTeam, updateTeam, deleteTeam } = useTeams()
 const teams = ref<(Team & { id: string })[]>([])
 const isLoading = ref(true)
 const isModalOpen = ref(false)
+const isConfirmOpen = ref(false)
+const teamToDelete = ref<string | null>(null)
 
 // Guarda el equipo que se esta editando (con su id).
 // Si es null, el modal esta en modo "crear"
@@ -96,8 +106,16 @@ const handleSubmit = async (team: Team) => {
   await loadTeams()
 }
 
-const handleDelete = async (id: string) => {
-  await deleteTeam(id)
+const askDelete = (id: string) => {
+  teamToDelete.value = id
+  isConfirmOpen.value = true
+}
+
+const handleDelete = async () => {
+  if (!teamToDelete.value) return
+  await deleteTeam(teamToDelete.value)
+  isConfirmOpen.value = false
+  teamToDelete.value = null
   await loadTeams()
 }
 
