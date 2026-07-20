@@ -53,6 +53,7 @@ const { logout } = useAuth()
 const navLinks = [
   { to: '/', label: 'Inicio' },
   { to: '/teams', label: 'Equipos' },
+  { to: '/players', label: 'Jugadores' },
   { to: '/matches', label: 'Partidos' },
   { to: '/groups', label: 'Grupos' },
   { to: '/predictions', label: 'Predicciones' }
