@@ -11,7 +11,46 @@
         </button>
       </div>
 
-      <p v-if="isLoading" class="text-white/60">Cargando equipos...</p>
+      <UiGlassCard v-if="isLoading" class="w-full">
+        <svg class="h-9 w-9 animate-spin text-[#D4AF37]" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        </svg>
+        <p class="text-white/60">Cargando equipos...</p>
+      </UiGlassCard>
+
+      <UiGlassCard v-else-if="hasError" class="w-full">
+        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 text-red-300">
+          <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-medium text-white">No se pudieron cargar los equipos</p>
+          <p class="mt-1 text-sm text-white/60">Ocurrió un problema al conectar con el servidor.</p>
+        </div>
+        <button
+          class="rounded-xl bg-[#D4AF37] px-5 py-2.5 font-semibold text-[#04140D] transition hover:brightness-110"
+          @click="loadTeams"
+        >
+          Reintentar
+        </button>
+      </UiGlassCard>
+
+      <UiGlassCard v-else-if="teams.length === 0" class="w-full">
+        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-[#D4AF37]/15 text-[#D4AF37]">
+          <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h13.5a1 1 0 0 1 1 1v11.5" />
+            <path d="M4 4v16l3.5-2.5L11 20l3.5-2.5" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-medium text-white">Todavía no hay equipos registrados</p>
+          <p class="mt-1 text-sm text-white/60">Agregá la primera selección para empezar a darle seguimiento.</p>
+        </div>
+      </UiGlassCard>
 
       <ul v-else class="flex flex-col gap-3">
         <li v-for="team in teams" :key="team.id">
@@ -96,6 +135,7 @@ const { success, error } = useNotify()
 
 const teams = ref<(Team & { id: string })[]>([])
 const isLoading = ref(true)
+const hasError = ref(false)
 const isModalOpen = ref(false)
 const isConfirmOpen = ref(false)
 const teamToDelete = ref<string | null>(null)
@@ -106,9 +146,11 @@ const teamBeingEdited = ref<(Team & { id: string }) | null>(null)
 
 const loadTeams = async () => {
   isLoading.value = true
+  hasError.value = false
   try {
     teams.value = await getAllTeams()
   } catch (err) {
+    hasError.value = true
     error('No se pudieron cargar los equipos. Intenta de nuevo.')
   } finally {
     isLoading.value = false
