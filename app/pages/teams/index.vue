@@ -33,6 +33,30 @@
         </div>
       </div>
 
+      <div v-if="!hasError && teams.length > 0" class="mb-5 flex flex-col gap-3 sm:flex-row">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar por nombre de selección..."
+          class="flex-1 rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
+        >
+        <select
+          v-model="selectedGroup"
+          :disabled="isFiltering"
+          class="rounded-xl border border-white/20 bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Todos los grupos</option>
+          <option
+            v-for="group in availableGroups"
+            :key="group"
+            :value="group"
+            class="bg-[#0F1F17] text-[#F5F0E6]"
+          >
+            Grupo {{ group }}
+          </option>
+        </select>
+      </div>
+
       <UiGlassCard v-if="isLoading" class="w-full">
         <svg class="h-9 w-9 animate-spin text-[#D4AF37]" viewBox="0 0 24 24" fill="none">
           <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
@@ -74,8 +98,29 @@
         </div>
       </UiGlassCard>
 
+      <UiGlassCard v-else-if="isFiltering" class="w-full">
+        <svg class="h-9 w-9 animate-spin text-[#D4AF37]" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        </svg>
+        <p class="text-white/60">Filtrando equipos...</p>
+      </UiGlassCard>
+
+      <UiGlassCard v-else-if="filteredTeams.length === 0" class="w-full">
+        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white/60">
+          <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-medium text-white">Sin resultados</p>
+          <p class="mt-1 text-sm text-white/60">Ningún equipo coincide con la búsqueda o el filtro aplicado.</p>
+        </div>
+      </UiGlassCard>
+
       <ul v-else class="flex flex-col gap-3">
-        <li v-for="team in teams" :key="team.id">
+        <li v-for="team in filteredTeams" :key="team.id">
           <UiGlassCard
             class="w-full"
             content-class="flex items-center justify-between gap-4 px-5 py-4 text-left"
@@ -152,15 +197,51 @@
 <script setup lang="ts">
 import type { Team } from '~~/shared/types/team'
 
-const { getAllTeams, createTeam, updateTeam, deleteTeam } = useTeams()
+const { getAllTeams, getTeamsByGroup, createTeam, updateTeam, deleteTeam } = useTeams()
 const { success, error } = useNotify()
 
 const teams = ref<(Team & { id: string })[]>([])
+const groupTeams = ref<(Team & { id: string })[] | null>(null)
 const isLoading = ref(true)
+const isFiltering = ref(false)
 const hasError = ref(false)
 const isModalOpen = ref(false)
 const isConfirmOpen = ref(false)
 const teamToDelete = ref<string | null>(null)
+const searchQuery = ref('')
+const selectedGroup = ref('')
+
+// Grupos distintos presentes en los equipos cargados, para el filtro
+const availableGroups = computed(() =>
+  [...new Set(teams.value.map((t) => t.group))].sort()
+)
+
+// Consulta a Firestore (where 'group') los equipos del grupo seleccionado
+const applyGroupFilter = async (group: string) => {
+  if (!group) {
+    groupTeams.value = null
+    return
+  }
+  isFiltering.value = true
+  try {
+    groupTeams.value = await getTeamsByGroup(group)
+  } catch (err) {
+    error('No se pudieron filtrar los equipos por grupo.')
+    groupTeams.value = []
+  } finally {
+    isFiltering.value = false
+  }
+}
+
+watch(selectedGroup, (group) => applyGroupFilter(group))
+
+// Aplica el buscador por nombre sobre el grupo seleccionado (o sobre todos los equipos)
+const filteredTeams = computed(() => {
+  const source = selectedGroup.value ? (groupTeams.value ?? []) : teams.value
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return source
+  return source.filter((team) => team.name.toLowerCase().includes(query))
+})
 
 // Guarda el equipo que se esta editando (con su id).
 // Si es null, el modal esta en modo "crear"
@@ -171,6 +252,9 @@ const loadTeams = async () => {
   hasError.value = false
   try {
     teams.value = await getAllTeams()
+    if (selectedGroup.value) {
+      await applyGroupFilter(selectedGroup.value)
+    }
   } catch (err) {
     hasError.value = true
     error('No se pudieron cargar los equipos. Intenta de nuevo.')

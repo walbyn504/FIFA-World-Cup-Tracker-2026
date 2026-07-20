@@ -1,7 +1,7 @@
 import type { Team } from '~~/shared/types/team'
 
 export const useTeams = () => {
-  const { getAll, getById, create, update, remove, where } = useFirestore()
+  const { getAll, getById, getWhere, create, update, remove, where } = useFirestore()
 
   // Busca todos los equipos
   const getAllTeams = () => getAll<Team>('teams')
@@ -10,7 +10,7 @@ export const useTeams = () => {
   const getTeamById = (teamId: string) => getById<Team>('teams', teamId)
 
   // Busca equipos de un grupo especifico
-  // const getTeamsByGroup = (group: string) => getWhere<Team>('teams', where('group', '==', group))
+  const getTeamsByGroup = (group: string) => getWhere<Team>('teams', where('group', '==', group))
 
   // Crea un equipo nuevo
   const createTeam = (team: Team) => create('teams', team)
@@ -24,6 +24,7 @@ export const useTeams = () => {
   return {
     getAllTeams,
     getTeamById,
+    getTeamsByGroup,
     createTeam,
     updateTeam,
     deleteTeam

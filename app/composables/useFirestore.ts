@@ -31,7 +31,7 @@ export const useFirestore = () => {
     }
   }
 
-  /*const getWhere = async <T>(
+  const getWhere = async <T>(
     collectionName: string,
     ...conditions: QueryConstraint[]
   ): Promise<(T & { id: string })[]> => {
@@ -44,7 +44,7 @@ export const useFirestore = () => {
       console.error(`Error consultando ${collectionName}:`, error)
       throw error
     }
-  }*/
+  }
 
   // Crea un nuevo documento en una colección
   const create = async <T extends DocumentData>(collectionName: string, data: T): Promise<string> => {
@@ -82,5 +82,5 @@ export const useFirestore = () => {
     }
   }
 
-  return { getAll, getById, create, update, remove, where }
+  return { getAll, getById, getWhere, create, update, remove, where }
 }
