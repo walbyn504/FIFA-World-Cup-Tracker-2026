@@ -11,12 +11,23 @@
 
         <form class="flex flex-col gap-4" novalidate @submit.prevent="handleSubmit">
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
-            Nombre
-            <input
+            Selección
+            <select
               v-model="form.name"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
+              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
               :class="errors.name ? 'border-red-400/60' : 'border-white/20'"
+              @change="handleTeamNameChange"
             >
+              <option value="" disabled class="bg-[#0F1F17] text-[#F5F0E6]">Elige una selección...</option>
+              <option
+                v-for="t in worldCupTeams"
+                :key="t.name"
+                :value="t.name"
+                class="bg-[#0F1F17] text-[#F5F0E6]"
+              >
+                {{ t.name }}
+              </option>
+            </select>
             <span v-if="errors.name" class="text-xs text-red-400">{{ errors.name }}</span>
           </label>
 
@@ -46,6 +57,7 @@
             <input
               v-model="form.confederation"
               placeholder="CONCACAF, UEFA..."
+              readonly
               class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
               :class="errors.confederation ? 'border-red-400/60' : 'border-white/20'"
             >
@@ -68,6 +80,7 @@
             <input
               v-model="form.flag"
               placeholder="https://..."
+              readonly
               class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
               :class="errors.flag ? 'border-red-400/60' : 'border-white/20'"
             >
@@ -97,6 +110,7 @@
 
 <script setup lang="ts">
 import type { Team } from '~~/shared/types/team'
+import { worldCupTeams } from '~/utils/worldCupTeams'
 
 // Define las propiedades que el componente espera recibir
 const props = defineProps<{
@@ -177,4 +191,13 @@ const handleSubmit = () => {
   if (!validate()) return
   emit('submit', form.value)
 }
+
+const handleTeamNameChange = () => {
+  const found = worldCupTeams.find((t) => t.name === form.value.name)
+  if (found) {
+    form.value.confederation = found.confederation
+    form.value.flag = found.flag
+  }
+}
+
 </script>
