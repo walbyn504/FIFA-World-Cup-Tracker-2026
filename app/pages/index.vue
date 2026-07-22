@@ -1,11 +1,6 @@
 <template>
-  <div
-    class="relative flex min-h-screen items-center justify-center bg-cover bg-center px-4"
-    style="background-image: url('/fondo-mundial.jpg')"
-  >
-    <div class="absolute inset-0 bg-black/25" />
-
-    <UiGlassCard class="relative z-10">
+  <div class="flex min-h-screen items-center justify-center px-4">
+    <UiGlassCard class="w-full max-w-md">
       <h1 class="text-3xl font-bold tracking-wide text-white drop-shadow-lg">
         FIFA World Cup Tracker 2026
       </h1>
