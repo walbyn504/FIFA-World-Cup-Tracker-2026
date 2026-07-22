@@ -91,7 +91,7 @@
             class="flex flex-wrap items-start justify-evenly gap-x-2 gap-y-4 px-2"
           >
             <div v-for="player in row.players" :key="player.id" class="flex w-16 flex-col items-center gap-1">
-              <UiJerseyBadge :number="player.number" :color="teamColor" class="h-14 w-14" />
+              <UiJerseyBadge :number="player.number" class="h-14 w-14" />
               <span class="line-clamp-2 text-center text-xs font-medium leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
                 {{ player.name }}
               </span>
@@ -130,19 +130,6 @@ const formationRows = computed(() =>
     }))
     .filter((row) => row.players.length > 0)
 )
-
-// Genera un color de camiseta distinto (pero fijo) para cada equipo, sin depender de un campo nuevo en Team
-const hashHue = (value: string) => {
-  let hash = 0
-  for (let i = 0; i < value.length; i++) {
-    hash = value.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  let hue = Math.abs(hash) % 360
-  if (hue > 80 && hue < 160) hue = (hue + 140) % 360 // evita tonos verdes que se pierden con el pasto
-  return hue
-}
-
-const teamColor = computed(() => `hsl(${hashHue(team.value?.id ?? teamId)}, 68%, 42%)`)
 
 const loadData = async () => {
   isLoading.value = true
