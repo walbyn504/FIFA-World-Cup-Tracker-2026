@@ -83,6 +83,16 @@
             <span v-if="errors.club" class="text-xs text-red-400">{{ errors.club }}</span>
           </label>
 
+          <label class="flex items-center gap-2 text-sm text-white/70">
+            <input
+              v-model="form.isStarter"
+              type="checkbox"
+              class="h-4 w-4 rounded border-white/20 bg-white/5 accent-[#D4AF37]"
+            >
+            Titular
+          </label>
+          <span v-if="errors.isStarter" class="-mt-3 text-xs text-red-400">{{ errors.isStarter }}</span>
+
           <div class="mt-2 flex justify-end gap-3">
             <button
               type="button"
@@ -130,7 +140,8 @@ const emptyPlayer: Player = {
   name: '',
   number: 0,
   position: '',
-  club: ''
+  club: '',
+  isStarter: false
 }
 
 // Define el estado del formulario y si se está editando un jugador existente
@@ -185,6 +196,17 @@ const validate = (): boolean => {
 
   if (!form.value.club?.trim()) {
     errors.value.club = 'El club es obligatorio.'
+  }
+
+  if (form.value.isStarter && form.value.teamId) {
+    const otherStarters = props.players.filter(
+      (p) => p.teamId === form.value.teamId && p.isStarter && p.id !== props.initialData?.id
+    )
+    if (otherStarters.length >= 11) {
+      errors.value.isStarter = 'Ya hay 11 titulares en esta selección.'
+    } else if (form.value.position === 'Portero' && otherStarters.some((p) => p.position === 'Portero')) {
+      errors.value.isStarter = 'Ya hay un portero titular en esta selección.'
+    }
   }
 
   return Object.keys(errors.value).length === 0

@@ -1,4 +1,4 @@
-export type NotifyType = 'success' | 'error'
+export type NotifyType = 'success' | 'error' | 'warning'
 
 interface Notification {
   id: number
@@ -27,9 +27,12 @@ export const useNotify = () => {
   const error = (message: string, title = 'Algo salió mal', duration?: number) =>
     push('error', title, message, duration)
 
+  const warning = (message: string, title = 'Atención', duration?: number) =>
+    push('warning', title, message, duration)
+
   const dismiss = (id: number) => {
     notifications.value = notifications.value.filter((n) => n.id !== id)
   }
 
-  return { notifications: readonly(notifications), success, error, dismiss }
+  return { notifications: readonly(notifications), success, error, warning, dismiss }
 }

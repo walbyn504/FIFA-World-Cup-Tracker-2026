@@ -8,7 +8,11 @@
       >
         <div
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-          :class="n.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'"
+          :class="{
+            'bg-emerald-500': n.type === 'success',
+            'bg-red-500': n.type === 'error',
+            'bg-amber-500': n.type === 'warning'
+          }"
         >
           <svg v-if="n.type === 'success'" class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12" />
@@ -34,7 +38,11 @@
 
         <div
           class="absolute bottom-0 left-0 h-[3px] animate-toast-progress"
-          :class="n.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'"
+          :class="{
+            'bg-emerald-500': n.type === 'success',
+            'bg-red-500': n.type === 'error',
+            'bg-amber-500': n.type === 'warning'
+          }"
           :style="{ animationDuration: `${n.duration}ms` }"
         />
       </div>
