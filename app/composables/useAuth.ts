@@ -56,8 +56,23 @@ export const useAuth = () => {
     }
   }
 
+  // Actualiza los datos editables del perfil del usuario autenticado
+  const updateProfile = async (changes: Partial<Pick<User, 'name' | 'favoriteTeam'>>) => {
+    if (!authStore.user) return
+
+    try {
+      const userRef = doc($firestore, 'users', authStore.user.uid)
+      await setDoc(userRef, changes, { merge: true })
+      authStore.setUser({ ...authStore.user, ...changes })
+    } catch (error) {
+      console.error('Error al actualizar el perfil:', error)
+      throw error
+    }
+  }
+
   return {
     loginWithGoogle,
-    logout
+    logout,
+    updateProfile
   }
 }

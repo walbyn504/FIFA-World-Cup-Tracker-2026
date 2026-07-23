@@ -1,8 +1,20 @@
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
     <UiGlassCard v-if="authStore.user" class="w-full max-w-md">
-      <div class="flex h-20 w-20 items-center justify-center rounded-full border-2 border-yellow-500 bg-gradient-to-br from-emerald-700 to-emerald-950 text-3xl font-bold text-yellow-200">
-        {{ authStore.user.name.charAt(0) }}
+      <div class="relative">
+        <div class="flex h-20 w-20 items-center justify-center rounded-full border-2 border-yellow-500 bg-gradient-to-br from-emerald-700 to-emerald-950 text-3xl font-bold text-yellow-200">
+          {{ authStore.user.name.charAt(0) }}
+        </div>
+        <button
+          title="Editar perfil"
+          class="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0F1F17] bg-[#D4AF37] text-[#04140D] transition hover:brightness-110"
+          @click="isModalOpen = true"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+        </button>
       </div>
 
       <div class="-mt-3">
@@ -23,13 +35,37 @@
         </div>
       </div>
     </UiGlassCard>
+
+    <ProfileFormModal
+      v-if="authStore.user"
+      :visible="isModalOpen"
+      :initial-data="{ name: authStore.user.name, favoriteTeam: authStore.user.favoriteTeam }"
+      @close="isModalOpen = false"
+      @submit="handleSubmit"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import type { User } from '~~/shared/types/user'
+
 definePageMeta({
   middleware: 'auth'
 })
 
 const authStore = useAuthStore()
+const { updateProfile } = useAuth()
+const { success, error } = useNotify()
+
+const isModalOpen = ref(false)
+
+const handleSubmit = async (changes: Pick<User, 'name' | 'favoriteTeam'>) => {
+  try {
+    await updateProfile(changes)
+    isModalOpen.value = false
+    success('Perfil actualizado correctamente.')
+  } catch (err) {
+    error('No se pudo actualizar el perfil.')
+  }
+}
 </script>
