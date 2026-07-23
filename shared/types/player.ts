@@ -3,5 +3,6 @@ export interface Player {
   name: string,
   number: number,
   position: string,
-  club: string
+  club: string,
+  isStarter?: boolean
 }
