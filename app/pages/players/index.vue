@@ -4,32 +4,8 @@
       <div class="mb-6 flex items-center justify-between">
         <h1 class="font-['Bebas_Neue'] text-3xl tracking-wide">Jugadores</h1>
         <div class="flex items-center gap-2">
-          <button
-            title="Actualizar lista"
-            class="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/25 text-white transition hover:bg-white/35 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="isLoading"
-            @click="loadPlayers"
-          >
-            <svg
-              class="h-5 w-5"
-              :class="{ 'animate-spin': isLoading }"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M21 12a9 9 0 1 1-3-6.7" />
-              <path d="M21 3v6h-6" />
-            </svg>
-          </button>
-          <button
-            class="rounded-xl bg-[#D4AF37] px-4 py-2 font-semibold text-[#04140D] hover:brightness-110"
-            @click="openCreateModal"
-          >
-            + Agregar jugador
-          </button>
+          <UiRefreshButton :loading="isLoading" @click="loadPlayers" />
+          <UiAddButton label="Agregar jugador" @click="openCreateModal" />
         </div>
       </div>
 
