@@ -9,7 +9,7 @@
           {{ isEditing ? 'Editar partido' : 'Nuevo partido' }}
         </h2>
 
-        <form class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1" novalidate @submit.prevent="handleSubmit">
+        <form class="match-form-scroll flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1" novalidate @submit.prevent="handleSubmit">
           <p v-if="isLocked" class="-mb-1 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/60">
             Este partido ya está {{ matchStatusLabels[props.initialData!.status].toLowerCase() }}: solo se puede actualizar el marcador y el estado.
           </p>
@@ -102,6 +102,26 @@
           </label>
 
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
+            Estado
+            <select
+              v-model="form.status"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+              :class="errors.status ? 'border-red-400/60' : 'border-white/20'"
+            >
+            <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un estado</option>
+              <option
+                v-for="option in availableStatuses"
+                :key="option.value"
+                :value="option.value"
+                class="bg-[#0F1F17] text-[#F5F0E6]"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+            <span v-if="errors.status" class="text-xs text-red-400">{{ errors.status }}</span>
+          </label>
+
+          <label class="flex flex-col gap-1.5 text-sm text-white/70">
             Fecha y hora
             <input
               v-model="form.kickoff"
@@ -141,25 +161,6 @@
             </label>
           </div>
 
-          <label class="flex flex-col gap-1.5 text-sm text-white/70">
-            Estado
-            <select
-              v-model="form.status"
-              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
-              :class="errors.status ? 'border-red-400/60' : 'border-white/20'"
-            >
-              <option
-                v-for="option in availableStatuses"
-                :key="option.value"
-                :value="option.value"
-                class="bg-[#0F1F17] text-[#F5F0E6]"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-            <span v-if="errors.status" class="text-xs text-red-400">{{ errors.status }}</span>
-          </label>
-
           <div class="mt-2 flex justify-end gap-3">
             <button
               type="button"
@@ -183,7 +184,7 @@
 
 <script setup lang="ts">
 import { Timestamp } from 'firebase/firestore'
-import type { Match } from '~~/shared/types/match'
+import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
 
@@ -213,7 +214,7 @@ const emptyMatch: MatchFormState = {
   kickoff: '',
   homeScore: 0,
   awayScore: 0,
-  status: 'scheduled'
+  status: '' as MatchStatus
 }
 
 // Convierte un Timestamp de Firestore al formato que espera <input type="datetime-local">
@@ -345,6 +346,10 @@ const validate = (): boolean => {
     errors.value.city = 'La ciudad es obligatoria.'
   }
 
+  if (!form.value.status) {
+    errors.value.status = 'El estado es obligatorio.'
+  }
+
   if (!form.value.kickoff) {
     errors.value.kickoff = 'La fecha y hora son obligatorias.'
   } else {
@@ -395,3 +400,27 @@ const handleSubmit = () => {
   })
 }
 </script>
+
+<style scoped>
+.match-form-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(1, 27, 0, 0.4) transparent;
+}
+
+.match-form-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.match-form-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.match-form-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(212, 175, 55, 0.4);
+  border-radius: 9999px;
+}
+
+.match-form-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(212, 175, 55, 0.6);
+}
+</style>
