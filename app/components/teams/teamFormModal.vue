@@ -189,7 +189,7 @@ const validate = (): boolean => {
 
 const handleSubmit = () => {
   if (!validate()) return
-  emit('submit', form.value)
+    emit('submit', { ...form.value, group: form.value.group.trim().toUpperCase() })
 }
 
 const handleTeamNameChange = () => {
