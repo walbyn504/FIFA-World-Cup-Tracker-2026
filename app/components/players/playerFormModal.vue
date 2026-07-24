@@ -75,11 +75,22 @@
 
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
             Club
-            <input
-              v-model="form.club"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
-              :class="errors.club ? 'border-red-400/60' : 'border-white/20'"
-            >
+            <div class="group relative">
+              <div
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre rounded-xl border bg-white/5 px-3 py-2.5 group-focus-within:border-[#D4AF37]"
+                :class="errors.club ? 'border-red-400/60' : 'border-white/20'"
+              >
+                <span class="invisible">{{ form.club }}</span><span class="text-white/30">{{ clubSuggestionTail }}</span>
+              </div>
+              <input
+                v-model="form.club"
+                autocomplete="off"
+                class="relative w-full whitespace-pre bg-transparent px-3 py-2.5 text-[#F5F0E6] outline-none"
+                @keydown.tab="acceptClubSuggestion"
+                @keydown.right="acceptClubSuggestion"
+              >
+            </div>
             <span v-if="errors.club" class="text-xs text-red-400">{{ errors.club }}</span>
           </label>
 
@@ -117,6 +128,7 @@
 <script setup lang="ts">
 import type { Player } from '~~/shared/types/player'
 import type { Team } from '~~/shared/types/team'
+import { clubNames } from '~/utils/clubCatalog'
 
 // Define las propiedades que el componente espera recibir
 const props = defineProps<{
@@ -150,6 +162,31 @@ const isEditing = computed(() => !!props.initialData)
 
 // Guarda los mensajes de error por campo
 const errors = ref<Record<string, string>>({})
+
+// Primer club del catálogo cuyo nombre empieza con lo ya escrito (si hay alguno)
+const clubSuggestion = computed(() => {
+  const typed = form.value.club
+  if (!typed) return ''
+  return clubNames.find((name) => name.toLowerCase().startsWith(typed.toLowerCase())) ?? ''
+})
+
+// Lo que falta del nombre sugerido, para mostrarlo como texto "fantasma" dentro del input
+const clubSuggestionTail = computed(() => {
+  if (!clubSuggestion.value) return ''
+  return clubSuggestion.value.slice(form.value.club.length)
+})
+
+// Acepta la sugerencia con Tab, o con flecha derecha si el cursor ya está al final del texto
+const acceptClubSuggestion = (event: KeyboardEvent) => {
+  if (!clubSuggestionTail.value) return
+
+  const input = event.target as HTMLInputElement
+  if (event.key === 'ArrowRight' && input.selectionStart !== input.value.length) return
+
+  event.preventDefault()
+  form.value.club = clubSuggestion.value
+  nextTick(() => input.setSelectionRange(form.value.club.length, form.value.club.length))
+}
 
 // Permite que el formulario se actualice cuando cambie la propiedad
 // `visible` o `initialData`
