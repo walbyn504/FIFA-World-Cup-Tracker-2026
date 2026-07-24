@@ -80,25 +80,45 @@
           </div>
 
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
-            Estadio
-            <input
-              v-model="form.stadium"
+            Ciudad
+            <select
+              v-model="form.city"
               :disabled="isLocked"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-              :class="errors.stadium ? 'border-red-400/60' : 'border-white/20'"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              :class="errors.city ? 'border-red-400/60' : 'border-white/20'"
             >
-            <span v-if="errors.stadium" class="text-xs text-red-400">{{ errors.stadium }}</span>
+              <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona una ciudad</option>
+              <option
+                v-for="city in availableCities"
+                :key="city"
+                :value="city"
+                class="bg-[#0F1F17] text-[#F5F0E6]"
+              >
+                {{ city }}
+              </option>
+            </select>
+            <span v-if="errors.city" class="text-xs text-red-400">{{ errors.city }}</span>
           </label>
 
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
-            Ciudad
-            <input
-              v-model="form.city"
-              :disabled="isLocked"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-              :class="errors.city ? 'border-red-400/60' : 'border-white/20'"
+            Estadio
+            <select
+              v-model="form.stadium"
+              :disabled="isLocked || !form.city"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              :class="errors.stadium ? 'border-red-400/60' : 'border-white/20'"
             >
-            <span v-if="errors.city" class="text-xs text-red-400">{{ errors.city }}</span>
+              <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un estadio</option>
+              <option
+                v-for="stadium in availableStadiums"
+                :key="stadium"
+                :value="stadium"
+                class="bg-[#0F1F17] text-[#F5F0E6]"
+              >
+                {{ stadium }}
+              </option>
+            </select>
+            <span v-if="errors.stadium" class="text-xs text-red-400">{{ errors.stadium }}</span>
           </label>
 
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
@@ -108,7 +128,7 @@
               class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
               :class="errors.status ? 'border-red-400/60' : 'border-white/20'"
             >
-            <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un estado</option>
+              <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un estado</option>
               <option
                 v-for="option in availableStatuses"
                 :key="option.value"
@@ -187,6 +207,7 @@ import { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
+import { matchVenues } from '~/utils/matchVenues'
 
 // Define las propiedades que el componente espera recibir
 const props = defineProps<{
@@ -303,8 +324,38 @@ const availableHomeTeams = computed(() => {
   return props.teams.filter((t) => t.name !== form.value.awayTeam)
 })
 
+// Ciudades que tuvieron sedes en la fase elegida (catálogo del Mundial 2026)
+const availableCities = computed(() => {
+  if (!form.value.stage) return matchVenues.map((v) => v.city)
+  return matchVenues.filter((v) => v.stages.includes(form.value.stage)).map((v) => v.city)
+})
+
+// Estadios de la ciudad ya elegida (cada ciudad tiene un único estadio en el catálogo)
+const availableStadiums = computed(() => {
+  if (!form.value.city) return []
+  return matchVenues.filter((v) => v.city === form.value.city).map((v) => v.stadium)
+})
+
 watch([() => form.value.kickoff, () => form.value.status], () => {
   errors.value.kickoff = validateKickoff()
+})
+
+// Evita que el auto-completado de estadio/ciudad se dispare al cargar el formulario
+// (por ejemplo, al editar un partido ya guardado), y solo actúe ante un cambio real del usuario
+let isResettingForm = false
+
+// Al elegir la ciudad, se autocompleta el estadio (relación 1 a 1 en el catálogo)
+watch(() => form.value.city, (city) => {
+  if (isResettingForm) return
+  form.value.stadium = matchVenues.find((v) => v.city === city)?.stadium ?? ''
+})
+
+// Si la fase cambia y la ciudad elegida ya no tiene sedes en la nueva fase, se limpia
+watch(() => form.value.stage, () => {
+  if (isResettingForm) return
+  if (form.value.city && !availableCities.value.includes(form.value.city)) {
+    form.value.city = ''
+  }
 })
 
 // Permite que el formulario se actualice cuando cambie la propiedad
@@ -313,8 +364,10 @@ watch(
   () => props.visible,
   (isVisible) => {
     if (isVisible) {
+      isResettingForm = true
       form.value = toFormState(props.initialData)
       errors.value = {}
+      nextTick(() => { isResettingForm = false })
     }
   }
 )
