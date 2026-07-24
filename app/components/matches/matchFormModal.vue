@@ -46,7 +46,7 @@
               >
                 <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un equipo</option>
                 <option
-                  v-for="team in teams"
+                  v-for="team in availableHomeTeams"
                   :key="team.id"
                   :value="team.name"
                   class="bg-[#0F1F17] text-[#F5F0E6]"
@@ -67,7 +67,7 @@
               >
                 <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un equipo</option>
                 <option
-                  v-for="team in teams"
+                  v-for="team in availableAwayTeams"
                   :key="team.id"
                   :value="team.name"
                   class="bg-[#0F1F17] text-[#F5F0E6]"
@@ -262,14 +262,45 @@ const errors = ref<Record<string, string>>({})
 const validateKickoff = (): string => {
   if (!form.value.kickoff) return ''
   const kickoffTime = new Date(form.value.kickoff).getTime()
+
   if (form.value.status === 'scheduled' && kickoffTime < Date.now()) {
     return 'Un partido programado no puede tener una fecha y hora que ya pasó.'
   }
-  if (form.value.status !== 'scheduled' && kickoffTime > Date.now()) {
-    return 'Un partido en vivo o finalizado no puede tener una fecha y hora futura.'
+
+  if (form.value.status === 'live') {
+    if (kickoffTime > Date.now()) {
+      return 'Un partido en vivo no puede tener una fecha y hora futura.'
+    }
+    const diffMinutes = (Date.now() - kickoffTime) / 60000
+    if (diffMinutes > 90) {
+      return 'Un partido en vivo debe haber comenzado hace 90 minutos o menos.'
+    }
   }
+
+  if (form.value.status === 'finished' && kickoffTime > Date.now()) {
+    return 'Un partido finalizado no puede tener una fecha y hora futura.'
+  }
+
   return ''
 }
+
+// Filtra las opciones del visitante segun el grupo del local ya elegido (si aplica)
+const availableAwayTeams = computed(() => {
+  if (form.value.stage === 'Fase de grupos' && form.value.homeTeam) {
+    const homeGroup = props.teams.find((t) => t.name === form.value.homeTeam)?.group?.toUpperCase()
+    return props.teams.filter((t) => t.group?.toUpperCase() === homeGroup && t.name !== form.value.homeTeam)
+  }
+  return props.teams.filter((t) => t.name !== form.value.homeTeam)
+})
+
+// Filtra las opciones del local segun el grupo del visitante ya elegido (si aplica)
+const availableHomeTeams = computed(() => {
+  if (form.value.stage === 'Fase de grupos' && form.value.awayTeam) {
+    const awayGroup = props.teams.find((t) => t.name === form.value.awayTeam)?.group?.toUpperCase()
+    return props.teams.filter((t) => t.group?.toUpperCase() === awayGroup && t.name !== form.value.awayTeam)
+  }
+  return props.teams.filter((t) => t.name !== form.value.awayTeam)
+})
 
 watch([() => form.value.kickoff, () => form.value.status], () => {
   errors.value.kickoff = validateKickoff()
@@ -328,6 +359,18 @@ const validate = (): boolean => {
 
     if (form.value.awayScore == null || form.value.awayScore < 0) {
       errors.value.awayScore = 'Los goles no pueden ser negativos.'
+    }
+
+    if (!form.value.awayTeam) {
+      errors.value.awayTeam = 'El equipo visitante es obligatorio.'
+    } else if (form.value.awayTeam === form.value.homeTeam) {
+      errors.value.awayTeam = 'El visitante debe ser distinto al local.'
+    } else if (form.value.stage === 'Fase de grupos') {
+      const homeGroup = props.teams.find((t) => t.name === form.value.homeTeam)?.group?.toUpperCase()
+      const awayGroup = props.teams.find((t) => t.name === form.value.awayTeam)?.group?.toUpperCase()
+      if (homeGroup && awayGroup && homeGroup !== awayGroup) {
+        errors.value.awayTeam = `En fase de grupos, ambos equipos deben ser del mismo grupo (local: Grupo ${homeGroup}).`
+      }
     }
   }
 
