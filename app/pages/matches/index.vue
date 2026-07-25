@@ -249,6 +249,7 @@ import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOpti
 const { getAllMatches, getMatchesByStage, getMatchesByGroup, createMatch, updateMatch, deleteMatch } = useMatches()
 const { getAllTeams } = useTeams()
 const { getAllPlayers } = usePlayers()
+const { generateBracket } = useBracket()
 const { success, error } = useNotify()
 
 const matches = ref<(Match & { id: string })[]>([])
@@ -401,6 +402,15 @@ const handleSubmit = async (match: Match) => {
     isModalOpen.value = false
     await loadMatches()
     success(isEditing ? 'Partido actualizado correctamente.' : 'Partido creado correctamente.')
+
+    // Si el partido quedó finalizado, puede haber dejado lista la siguiente ronda
+    // de la llave eliminatoria (o la fase de grupos completa): se revisa al toque,
+    // sin depender de que alguien entre a /bracket.
+    if (match.status === 'finished') {
+      const messages = await generateBracket()
+      const relevant = messages.filter((m) => m && !m.includes('ya estaba generado'))
+      if (relevant.length > 0) success(relevant.join(' '))
+    }
   } catch (err) {
     error(isEditing ? 'No se pudo actualizar el partido.' : 'No se pudo crear el partido.')
   }
