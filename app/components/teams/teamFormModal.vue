@@ -115,7 +115,8 @@ import { worldCupTeams } from '~/utils/worldCupTeams'
 // Define las propiedades que el componente espera recibir
 const props = defineProps<{
   visible: boolean
-  initialData?: Team | null
+  initialData?: (Team & { id: string }) | null
+  teams: (Team & { id: string })[]
 }>()
 
 // Define los eventos que el componente puede emitir
@@ -164,6 +165,14 @@ const validate = (): boolean => {
 
   if (!form.value.group?.trim()) {
     errors.value.group = 'El grupo es obligatorio.'
+  } else {
+    const groupUpper = form.value.group.trim().toUpperCase()
+    const teamsInGroup = props.teams.filter(
+      (t) => t.group?.toUpperCase() === groupUpper && t.id !== props.initialData?.id
+    )
+    if (teamsInGroup.length >= 4) {
+      errors.value.group = `El grupo ${groupUpper} ya tiene 4 selecciones. Elige otro grupo.`
+    }
   }
 
   if (!form.value.coach?.trim()) {

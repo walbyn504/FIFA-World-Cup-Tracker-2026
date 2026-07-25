@@ -156,6 +156,7 @@
     <TeamsTeamFormModal
       :visible="isModalOpen"
       :initial-data="teamBeingEdited"
+      :teams="teams"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
