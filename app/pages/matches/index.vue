@@ -136,7 +136,7 @@
       </UiGlassCard>
 
       <ul v-else class="flex flex-col gap-3">
-        <li v-for="match in filteredMatches" :key="match.id">
+        <li v-for="match in paginatedMatches" :key="match.id">
           <UiGlassCard class="w-full" content-class="flex items-center justify-between gap-4 px-5 py-4 text-left">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 text-xs text-white/60">
@@ -209,6 +209,14 @@
           </UiGlassCard>
         </li>
       </ul>
+
+      <UiPagination
+        v-if="!isLoading && !hasError && !isFiltering"
+        v-model="currentPage"
+        :total-items="filteredMatches.length"
+        :items-per-page="itemsPerPage"
+        class="mt-6"
+      />
     </div>
 
     <MatchesMatchFormModal
@@ -325,6 +333,19 @@ const filteredMatches = computed(() => {
   }
 
   return result
+})
+
+const itemsPerPage = 3
+const currentPage = ref(1)
+
+// Vuelve a la primera página cada vez que cambia el resultado filtrado
+watch(filteredMatches, () => {
+  currentPage.value = 1
+})
+
+const paginatedMatches = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredMatches.value.slice(start, start + itemsPerPage)
 })
 
 const loadMatches = async () => {

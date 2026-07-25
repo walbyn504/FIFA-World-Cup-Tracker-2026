@@ -96,7 +96,7 @@
       </UiGlassCard>
 
       <ul v-else class="flex flex-col gap-3">
-        <li v-for="team in filteredTeams" :key="team.id">
+        <li v-for="team in paginatedTeams" :key="team.id">
           <UiGlassCard
             class="w-full"
             content-class="flex items-center justify-between gap-4 px-5 py-4 text-left"
@@ -151,6 +151,14 @@
           </UiGlassCard>
         </li>
       </ul>
+
+      <UiPagination
+        v-if="!isLoading && !hasError && !isFiltering"
+        v-model="currentPage"
+        :total-items="filteredTeams.length"
+        :items-per-page="itemsPerPage"
+        class="mt-6"
+      />
     </div>
 
     <TeamsTeamFormModal
@@ -218,6 +226,19 @@ const filteredTeams = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return source
   return source.filter((team) => team.name.toLowerCase().includes(query))
+})
+
+const itemsPerPage = 5
+const currentPage = ref(1)
+
+// Vuelve a la primera página cada vez que cambia el resultado filtrado
+watch(filteredTeams, () => {
+  currentPage.value = 1
+})
+
+const paginatedTeams = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredTeams.value.slice(start, start + itemsPerPage)
 })
 
 // Guarda el equipo que se esta editando (con su id).

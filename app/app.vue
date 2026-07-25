@@ -10,7 +10,7 @@
             :key="link.to"
             :to="link.to"
             class="rounded-lg px-2.5 py-1.5 text-sm text-white/75 transition hover:bg-white/10"
-            active-class="text-[#F2D479] bg-[#F2D479]/15"
+            active-class="text-emerald-400 bg-emerald-400/15"
           >
             {{ link.label }}
           </NuxtLink>
