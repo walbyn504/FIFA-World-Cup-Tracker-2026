@@ -56,6 +56,7 @@ const navLinks = [
   { to: '/players', label: 'Jugadores' },
   { to: '/matches', label: 'Partidos' },
   { to: '/groups', label: 'Grupos' },
+  { to: '/bracket', label: 'Llaves' },
   { to: '/predictions', label: 'Predicciones' }
 ]
 
