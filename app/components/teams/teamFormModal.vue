@@ -35,9 +35,11 @@
             Grupo
             <input
               v-model="form.group"
-              placeholder="A, B, C..."
+              placeholder="A"
+              maxlength="1"
               class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
               :class="errors.group ? 'border-red-400/60' : 'border-white/20'"
+              @input="form.group = form.group.toUpperCase().replace(/[^A-Z]/g, '')"
             >
             <span v-if="errors.group" class="text-xs text-red-400">{{ errors.group }}</span>
           </label>
@@ -161,6 +163,13 @@ const validate = (): boolean => {
 
   if (!form.value.name?.trim()) {
     errors.value.name = 'El nombre es obligatorio.'
+  }else {
+    const alreadyExists = props.teams.some(
+      (t) => t.name === form.value.name && t.id !== props.initialData?.id
+    )
+    if (alreadyExists) {
+      errors.value.name = `${form.value.name} ya está registrado.`
+    }
   }
 
   if (!form.value.group?.trim()) {
