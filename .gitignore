@@ -22,3 +22,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Credencial de Firebase Admin (usada por scripts/seed.ts, nunca se commitea)
+scripts/serviceAccountKey.json
