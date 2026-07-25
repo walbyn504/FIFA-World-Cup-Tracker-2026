@@ -1,6 +1,5 @@
-// Script de carga inicial de datos (equipos, jugadores y partidos de fase de grupos)
-// directo a Firestore, usando Firebase Admin SDK (no pasa por la interfaz ni por las
-// reglas de seguridad del SDK cliente).
+// Carga inicial de datos (equipos, jugadores, partidos de fase de grupos) directo a
+// Firestore con Firebase Admin SDK.
 //
 // Requisitos antes de correrlo:
 //   1. Descargar una clave de servicio desde Firebase Console
@@ -8,17 +7,18 @@
 //      y guardarla como scripts/serviceAccountKey.json (ya está en .gitignore).
 //   2. npm run seed
 //
-// Nota: el grupo, entrenador ("coach") y ranking FIFA de cada selección son valores
-// de referencia para poder probar la app (no están verificados contra datos oficiales
-// actuales). Los nombres de jugadores también son genéricos, no roster reales.
+// Grupo, coach y ranking FIFA son valores de referencia, no verificados contra datos
+// oficiales. Los jugadores de 39 selecciones vienen de scripts/realSquads.ts (convocatoria
+// real al Mundial 2026); las 9 restantes usan nombres genéricos ("Jugador N - Equipo").
 
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cert, initializeApp } from 'firebase-admin/app'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
-import { worldCupTeams } from '../app/utils/worldCupTeams'
+import { worldCupTeams, type WorldCupTeamPreset } from '../app/utils/worldCupTeams'
 import { clubCatalog } from '../app/utils/clubCatalog'
+import { realSquads } from './realSquads'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -28,21 +28,6 @@ const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'))
 initializeApp({ credential: cert(serviceAccount) })
 const db = getFirestore()
 
-// Asignación de grupos (A-H, 4 equipos cada uno = 32 en total) para que el
-// primer cruce eliminatorio (Dieciseisavos, top 2 de cada grupo) dé un bracket
-// parejo: 16 -> Octavos (8) -> Cuartos (4) -> Semifinal (2) -> Final.
-const groupAssignments: Record<string, string> = {
-  'Canadá': 'A', 'México': 'A', 'Estados Unidos': 'A', 'Costa Rica': 'A',
-  'Argentina': 'B', 'Brasil': 'B', 'Uruguay': 'B', 'Colombia': 'B',
-  'Ecuador': 'C', 'España': 'C', 'Francia': 'C', 'Alemania': 'C',
-  'Inglaterra': 'D', 'Portugal': 'D', 'Países Bajos': 'D', 'Bélgica': 'D',
-  'Italia': 'E', 'Croacia': 'E', 'Suiza': 'E', 'Polonia': 'E',
-  'Serbia': 'F', 'Japón': 'F', 'Corea del Sur': 'F', 'Irán': 'F',
-  'Arabia Saudita': 'G', 'Australia': 'G', 'Marruecos': 'G', 'Senegal': 'G',
-  'Nigeria': 'H', 'Egipto': 'H', 'Ghana': 'H', 'Nueva Zelanda': 'H'
-}
-
-// Sedes reales del Mundial 2026 (Canadá, México, Estados Unidos)
 const venues = [
   { stadium: 'Estadio Azteca', city: 'Ciudad de México' },
   { stadium: 'Estadio Akron', city: 'Guadalajara' },
@@ -62,7 +47,8 @@ const venues = [
   { stadium: 'Lumen Field', city: 'Seattle' }
 ]
 
-// Plantilla de 23 jugadores: 3 porteros, 8 defensas, 8 mediocampistas, 4 delanteros
+// Fallback para selecciones sin convocatoria real: 3 porteros, 8 defensas,
+// 8 mediocampistas, 4 delanteros.
 const squadPositions = [
   ...Array(3).fill('Portero'),
   ...Array(8).fill('Defensa'),
@@ -70,20 +56,57 @@ const squadPositions = [
   ...Array(4).fill('Delantero')
 ]
 
+// Once titular 4-4-2 sobre squadPositions. No son "los primeros 11 por
+// índice" porque ahí caerían los 3 porteros a la vez (máximo 1 titular).
+const starterIndexes = new Set([0, 3, 4, 5, 6, 11, 12, 13, 14, 19, 20])
+
 function roundRobin(teams: string[]): [string, string][] {
   const pairs: [string, string][] = []
   for (let i = 0; i < teams.length; i++) {
     for (let j = i + 1; j < teams.length; j++) {
-      pairs.push([teams[i], teams[j]])
+      pairs.push([teams[i]!, teams[j]!])
     }
   }
   return pairs
 }
 
-// Genera un marcador reproducible (0-3) a partir de un índice, sin azar real
 function deterministicScore(seed: number): number {
   return seed % 4
 }
+
+// Reparte las selecciones en grupos de 4, intercalando confederaciones. Se
+// calcula a partir de `worldCupTeams` (no de un mapa nombre->grupo
+// hardcodeado) para que nunca quede desincronizado si el catálogo cambia.
+function assignGroups(teams: WorldCupTeamPreset[]): Map<string, string> {
+  const byConfederation = new Map<string, WorldCupTeamPreset[]>()
+  for (const team of teams) {
+    const bucket = byConfederation.get(team.confederation) ?? []
+    bucket.push(team)
+    byConfederation.set(team.confederation, bucket)
+  }
+  const buckets = [...byConfederation.values()]
+
+  const interleaved: WorldCupTeamPreset[] = []
+  for (let round = 0; interleaved.length < teams.length; round++) {
+    for (const bucket of buckets) {
+      const team = bucket[round]
+      if (team) interleaved.push(team)
+    }
+  }
+
+  if (interleaved.length % 4 !== 0) {
+    throw new Error(`worldCupTeams tiene ${interleaved.length} selecciones; debe ser múltiplo de 4 para armar grupos parejos.`)
+  }
+
+  const assignment = new Map<string, string>()
+  interleaved.forEach((team, i) => {
+    const letter = String.fromCharCode('A'.charCodeAt(0) + Math.floor(i / 4))
+    assignment.set(team.name, letter)
+  })
+  return assignment
+}
+
+const groupAssignments = assignGroups(worldCupTeams)
 
 async function seedTeams() {
   console.log('Creando equipos...')
@@ -91,7 +114,7 @@ async function seedTeams() {
   let ranking = 1
 
   for (const preset of worldCupTeams) {
-    const group = groupAssignments[preset.name]
+    const group = groupAssignments.get(preset.name)!
     const ref = await db.collection('teams').add({
       name: preset.name,
       group,
@@ -108,34 +131,54 @@ async function seedTeams() {
 }
 
 async function seedPlayers(teamIdByName: Map<string, string>) {
-  console.log('Creando jugadores (23 por equipo)...')
+  console.log('Creando jugadores...')
+  let playerCount = 0
 
   for (const preset of worldCupTeams) {
     const teamId = teamIdByName.get(preset.name)!
     const clubs = clubCatalog.filter((c) => c.country === preset.name).map((c) => c.club)
+    const realSquad = realSquads[preset.name]
     const batch = db.batch()
+    playerCount += realSquad ? realSquad.length : squadPositions.length
 
-    squadPositions.forEach((position, i) => {
-      const playerRef = db.collection('players').doc()
-      batch.set(playerRef, {
-        teamId,
-        name: `Jugador ${i + 1} - ${preset.name}`,
-        number: i + 1,
-        position,
-        club: clubs.length ? clubs[i % clubs.length] : 'Independiente',
-        isStarter: i < 11
+    if (realSquad) {
+      // Los dorsales 1-11 son el once titular por convención del fútbol.
+      realSquad.forEach((player) => {
+        const playerRef = db.collection('players').doc()
+        batch.set(playerRef, {
+          teamId,
+          name: player.name,
+          number: player.number,
+          position: player.position,
+          club: clubs.length ? clubs[player.number % clubs.length] : 'Independiente',
+          isStarter: player.number <= 11
+        })
       })
-    })
+    } else {
+      squadPositions.forEach((position, i) => {
+        const playerRef = db.collection('players').doc()
+        batch.set(playerRef, {
+          teamId,
+          name: `Jugador ${i + 1} - ${preset.name}`,
+          number: i + 1,
+          position,
+          club: clubs.length ? clubs[i % clubs.length] : 'Independiente',
+          isStarter: starterIndexes.has(i)
+        })
+      })
+    }
 
     await batch.commit()
   }
+
+  return playerCount
 }
 
 async function seedGroupStageMatches() {
   console.log('Creando partidos de fase de grupos...')
 
   const teamsByGroup = new Map<string, string[]>()
-  for (const [name, group] of Object.entries(groupAssignments)) {
+  for (const [name, group] of groupAssignments.entries()) {
     if (!teamsByGroup.has(group)) teamsByGroup.set(group, [])
     teamsByGroup.get(group)!.push(name)
   }
@@ -145,7 +188,7 @@ async function seedGroupStageMatches() {
 
   for (const [group, teams] of teamsByGroup.entries()) {
     for (const [homeTeam, awayTeam] of roundRobin(teams)) {
-      const venue = venues[matchIndex % venues.length]
+      const venue = venues[matchIndex % venues.length]!
       const kickoff = new Date(baseDate)
       kickoff.setDate(baseDate.getDate() + Math.floor(matchIndex / 4))
 
@@ -171,10 +214,10 @@ async function seedGroupStageMatches() {
 
 async function seed() {
   const teamIdByName = await seedTeams()
-  await seedPlayers(teamIdByName)
+  const playerCount = await seedPlayers(teamIdByName)
   const matchCount = await seedGroupStageMatches()
 
-  console.log(`\nListo: ${teamIdByName.size} equipos, ${teamIdByName.size * squadPositions.length} jugadores, ${matchCount} partidos de fase de grupos.`)
+  console.log(`\nListo: ${teamIdByName.size} equipos, ${playerCount} jugadores, ${matchCount} partidos de fase de grupos.`)
 }
 
 seed()
