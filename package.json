@@ -8,7 +8,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "seed:clear": "tsx scripts/clear.ts",
+    "seed:reset": "npm run seed:clear && npm run seed"
   },
   "dependencies": {
     "@pinia/nuxt": "^1.0.1",
