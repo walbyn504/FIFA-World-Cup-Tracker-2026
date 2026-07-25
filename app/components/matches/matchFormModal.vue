@@ -210,15 +210,20 @@
 import { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
+import type { Player } from '~~/shared/types/player'
 import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
 import { matchVenues } from '~/utils/matchVenues'
+
+// Cantidad mínima de jugadores en plantilla para poder disputar un partido
+const MIN_SQUAD_SIZE = 11
 
 // Define las propiedades que el componente espera recibir
 const props = defineProps<{
   visible: boolean
   initialData?: (Match & { id?: string }) | null
   teams: (Team & { id: string })[]
-  matches: (Match & { id?: string })[] 
+  matches: (Match & { id?: string })[]
+  players: (Player & { id?: string })[]
 }>()
 
 // Define los eventos que el componente puede emitir
@@ -396,6 +401,13 @@ watch(
   }
 )
 
+// Cantidad de jugadores registrados en la plantilla de un equipo (por nombre)
+const squadSize = (teamName: string): number => {
+  const teamId = props.teams.find((t) => t.name === teamName)?.id
+  if (!teamId) return 0
+  return props.players.filter((p) => p.teamId === teamId).length
+}
+
 // Revisa cada campo y llena `errors` si algo no es válido.
 // Devuelve true si el formulario está listo para enviarse.
 const validate = (): boolean => {
@@ -432,6 +444,20 @@ const validate = (): boolean => {
       if (duplicate) {
         errors.value.awayTeam = `Ya existe un partido entre ${form.value.homeTeam} y ${form.value.awayTeam} en fase de grupos.`
       }
+    }
+  }
+
+  // Ningún equipo puede jugar un partido si su plantilla no tiene el mínimo de jugadores.
+  // No aplica a partidos ya en vivo/finalizados (isLocked): ahí los equipos ya no se pueden
+  // cambiar, y no tendría sentido bloquear la actualización del marcador de un partido viejo
+  // solo porque la plantilla del equipo cambió después.
+  if (!isLocked.value) {
+    if (form.value.homeTeam && !errors.value.homeTeam && squadSize(form.value.homeTeam) < MIN_SQUAD_SIZE) {
+      errors.value.homeTeam = `El equipo local no tiene la cantidad mínima de jugadores (${MIN_SQUAD_SIZE}) en plantilla.`
+    }
+
+    if (form.value.awayTeam && !errors.value.awayTeam && squadSize(form.value.awayTeam) < MIN_SQUAD_SIZE) {
+      errors.value.awayTeam = `El equipo visitante no tiene la cantidad mínima de jugadores (${MIN_SQUAD_SIZE}) en plantilla.`
     }
   }
 

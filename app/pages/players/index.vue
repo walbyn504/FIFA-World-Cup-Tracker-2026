@@ -226,11 +226,12 @@ const applyTeamFilter = async (teamId: string) => {
 watch(selectedTeamId, (teamId) => applyTeamFilter(teamId))
 
 // Aplica el buscador por nombre sobre la selección elegida (o sobre todos los jugadores)
+// y ordena alfabéticamente por nombre
 const filteredPlayers = computed(() => {
   const source = selectedTeamId.value ? (teamPlayers.value ?? []) : players.value
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return source
-  return source.filter((player) => player.name.toLowerCase().includes(query))
+  const result = query ? source.filter((player) => player.name.toLowerCase().includes(query)) : source
+  return [...result].sort((a, b) => a.name.localeCompare(b.name))
 })
 
 const itemsPerPage = 4
