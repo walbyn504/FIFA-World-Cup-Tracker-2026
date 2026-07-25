@@ -224,6 +224,7 @@
       :initial-data="matchBeingEdited"
       :teams="teams"
       :matches="matches"
+      :players="players"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
@@ -242,15 +243,18 @@
 import type { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
+import type { Player } from '~~/shared/types/player'
 import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
 
 const { getAllMatches, getMatchesByStage, getMatchesByGroup, createMatch, updateMatch, deleteMatch } = useMatches()
 const { getAllTeams } = useTeams()
+const { getAllPlayers } = usePlayers()
 const { success, error } = useNotify()
 
 const matches = ref<(Match & { id: string })[]>([])
 const queriedMatches = ref<(Match & { id: string })[] | null>(null)
 const teams = ref<(Team & { id: string })[]>([])
+const players = ref<(Player & { id: string })[]>([])
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -332,7 +336,15 @@ const filteredMatches = computed(() => {
     )
   }
 
-  return result
+  // En vivo primero, luego programados (más próximo primero), luego finalizados (más reciente primero)
+  const statusOrder: Record<MatchStatus, number> = { live: 0, scheduled: 1, finished: 2 }
+  return [...result].sort((a, b) => {
+    const statusDiff = statusOrder[a.status] - statusOrder[b.status]
+    if (statusDiff !== 0) return statusDiff
+
+    const timeDiff = a.kickoff.toDate().getTime() - b.kickoff.toDate().getTime()
+    return a.status === 'finished' ? -timeDiff : timeDiff
+  })
 })
 
 const itemsPerPage = 3
@@ -352,9 +364,10 @@ const loadMatches = async () => {
   isLoading.value = true
   hasError.value = false
   try {
-    const [allMatches, allTeams] = await Promise.all([getAllMatches(), getAllTeams()])
+    const [allMatches, allTeams, allPlayers] = await Promise.all([getAllMatches(), getAllTeams(), getAllPlayers()])
     matches.value = allMatches
     teams.value = allTeams
+    players.value = allPlayers
     if (selectedStage.value || selectedGroup.value) {
       await applyQueryFilter()
     }
