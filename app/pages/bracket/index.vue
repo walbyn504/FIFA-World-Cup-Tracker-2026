@@ -1,9 +1,11 @@
 <template>
-  <div class="relative min-h-screen overflow-hidden px-6 py-10 text-[#F5F0E6]">
-    <div class="fixed inset-0 -z-20 bg-cover bg-center" style="background-image: url('/trofeo-mundial.png')" />
-    <div class="fixed inset-0 -z-10 bg-black/50" />
+  <div
+    class="relative min-h-screen bg-cover bg-center px-6 py-10 text-[#F5F0E6]"
+    style="background-image: url('/trofeo-mundial.png')"
+  >
+    <div class="absolute inset-0 bg-black/50" />
 
-    <div class="relative mx-auto max-w-[1500px]">
+    <div class="relative z-10 mx-auto max-w-[1500px]">
       <div class="mb-2 flex items-center justify-between gap-3">
         <h1 class="font-['Bebas_Neue'] text-4xl tracking-wide text-[#F5F0E6]">Llaves eliminatorias</h1>
         <UiRefreshButton :loading="isLoading" @click="loadBracket" />
