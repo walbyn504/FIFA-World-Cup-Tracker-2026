@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen px-6 py-10 text-[#F5F0E6]">
-    <div class="mx-auto max-w-3xl">
+    <div class="mx-auto max-w-4xl">
       <div class="mb-4 flex items-center justify-between">
         <h1 class="font-['Bebas_Neue'] text-3xl tracking-wide">Grupo {{ groupId }}</h1>
         <button
@@ -50,17 +50,17 @@
       </UiGlassCard>
 
       <UiGlassCard v-else class="w-full" content-class="overflow-x-auto p-0">
-        <table class="w-full text-left text-sm">
+        <table class="w-full text-left text-base">
           <thead>
             <tr class="border-b border-white/15 text-white/50">
-              <th class="px-4 py-3">#</th>
-              <th class="px-4 py-3">Equipo</th>
-              <th class="px-2 py-3 text-center">PJ</th>
-              <th class="px-2 py-3 text-center">G</th>
-              <th class="px-2 py-3 text-center">E</th>
-              <th class="px-2 py-3 text-center">P</th>
-              <th class="px-2 py-3 text-center">DG</th>
-              <th class="px-4 py-3 text-center">Pts</th>
+              <th class="px-5 py-4">#</th>
+              <th class="px-5 py-4">Equipo</th>
+              <th class="px-3 py-4 text-center">PJ</th>
+              <th class="px-3 py-4 text-center">G</th>
+              <th class="px-3 py-4 text-center">E</th>
+              <th class="px-3 py-4 text-center">P</th>
+              <th class="px-3 py-4 text-center">DG</th>
+              <th class="px-5 py-4 text-center">Pts</th>
             </tr>
           </thead>
           <tbody>
@@ -69,17 +69,17 @@
               :key="team.teamId"
               class="border-b border-white/5"
             >
-              <td class="px-4 py-3 text-white/50">{{ index + 1 }}</td>
-              <td class="flex items-center gap-2 px-4 py-3">
-                <img v-if="team.flag" :src="team.flag" :alt="team.teamName" class="h-4 w-6 rounded-sm object-cover">
+              <td class="px-5 py-4 text-white/50">{{ index + 1 }}</td>
+              <td class="flex items-center gap-2.5 px-5 py-4">
+                <img v-if="team.flag" :src="team.flag" :alt="team.teamName" class="h-5 w-7 rounded-sm object-cover">
                 <span>{{ team.teamName }}</span>
               </td>
-              <td class="px-2 py-3 text-center">{{ team.played }}</td>
-              <td class="px-2 py-3 text-center">{{ team.won }}</td>
-              <td class="px-2 py-3 text-center">{{ team.drawn }}</td>
-              <td class="px-2 py-3 text-center">{{ team.lost }}</td>
-              <td class="px-2 py-3 text-center">{{ team.goalDifference }}</td>
-              <td class="px-4 py-3 text-center font-semibold text-[#D4AF37]">{{ team.points }}</td>
+              <td class="px-3 py-4 text-center">{{ team.played }}</td>
+              <td class="px-3 py-4 text-center">{{ team.won }}</td>
+              <td class="px-3 py-4 text-center">{{ team.drawn }}</td>
+              <td class="px-3 py-4 text-center">{{ team.lost }}</td>
+              <td class="px-3 py-4 text-center">{{ team.goalDifference }}</td>
+              <td class="px-5 py-4 text-center font-semibold text-[#D4AF37]">{{ team.points }}</td>
             </tr>
           </tbody>
         </table>
