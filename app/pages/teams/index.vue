@@ -221,11 +221,12 @@ const applyGroupFilter = async (group: string) => {
 watch(selectedGroup, (group) => applyGroupFilter(group))
 
 // Aplica el buscador por nombre sobre el grupo seleccionado (o sobre todos los equipos)
+// y ordena alfabéticamente por nombre
 const filteredTeams = computed(() => {
   const source = selectedGroup.value ? (groupTeams.value ?? []) : teams.value
   const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return source
-  return source.filter((team) => team.name.toLowerCase().includes(query))
+  const result = query ? source.filter((team) => team.name.toLowerCase().includes(query)) : source
+  return [...result].sort((a, b) => a.name.localeCompare(b.name))
 })
 
 const itemsPerPage = 5
