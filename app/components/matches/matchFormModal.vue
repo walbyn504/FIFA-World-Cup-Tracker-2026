@@ -307,37 +307,56 @@ const validateKickoff = (): string => {
 }
 
 // Filtra las opciones del visitante segun el grupo del local ya elegido (si aplica)
+// y siempre incluye el equipo ya guardado, aunque el filtro lo hubiera excluido
 const availableAwayTeams = computed(() => {
+  let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.homeTeam) {
     const homeGroup = props.teams.find((t) => t.name === form.value.homeTeam)?.group?.toUpperCase()
-    return props.teams.filter((t) => t.group?.toUpperCase() === homeGroup && t.name !== form.value.homeTeam)
+    list = props.teams.filter((t) => t.group?.toUpperCase() === homeGroup && t.name !== form.value.homeTeam)
+  } else {
+    list = props.teams.filter((t) => t.name !== form.value.homeTeam)
   }
-  return props.teams.filter((t) => t.name !== form.value.homeTeam)
+  if (form.value.awayTeam && !list.some((t) => t.name === form.value.awayTeam)) {
+    const current = props.teams.find((t) => t.name === form.value.awayTeam)
+    if (current) list = [current, ...list]
+  }
+  return list
 })
 
 // Filtra las opciones del local segun el grupo del visitante ya elegido (si aplica)
 const availableHomeTeams = computed(() => {
+  let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.awayTeam) {
     const awayGroup = props.teams.find((t) => t.name === form.value.awayTeam)?.group?.toUpperCase()
-    return props.teams.filter((t) => t.group?.toUpperCase() === awayGroup && t.name !== form.value.awayTeam)
+    list = props.teams.filter((t) => t.group?.toUpperCase() === awayGroup && t.name !== form.value.awayTeam)
+  } else {
+    list = props.teams.filter((t) => t.name !== form.value.awayTeam)
   }
-  return props.teams.filter((t) => t.name !== form.value.awayTeam)
+  if (form.value.homeTeam && !list.some((t) => t.name === form.value.homeTeam)) {
+    const current = props.teams.find((t) => t.name === form.value.homeTeam)
+    if (current) list = [current, ...list]
+  }
+  return list
 })
 
 // Ciudades que tuvieron sedes en la fase elegida (catálogo del Mundial 2026)
 const availableCities = computed(() => {
-  if (!form.value.stage) return matchVenues.map((v) => v.city)
-  return matchVenues.filter((v) => v.stages.includes(form.value.stage)).map((v) => v.city)
+  const list = !form.value.stage
+    ? matchVenues.map((v) => v.city)
+    : matchVenues.filter((v) => v.stages.includes(form.value.stage)).map((v) => v.city)
+  if (form.value.city && !list.includes(form.value.city)) {
+    return [form.value.city, ...list]
+  }
+  return list
 })
 
 // Estadios de la ciudad ya elegida (cada ciudad tiene un único estadio en el catálogo)
 const availableStadiums = computed(() => {
-  if (!form.value.city) return []
-  return matchVenues.filter((v) => v.city === form.value.city).map((v) => v.stadium)
-})
-
-watch([() => form.value.kickoff, () => form.value.status], () => {
-  errors.value.kickoff = validateKickoff()
+  const list = !form.value.city ? [] : matchVenues.filter((v) => v.city === form.value.city).map((v) => v.stadium)
+  if (form.value.stadium && !list.includes(form.value.stadium)) {
+    return [form.value.stadium, ...list]
+  }
+  return list
 })
 
 // Evita que el auto-completado de estadio/ciudad se dispare al cargar el formulario
