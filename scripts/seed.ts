@@ -28,15 +28,18 @@ const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'))
 initializeApp({ credential: cert(serviceAccount) })
 const db = getFirestore()
 
-// Asignación de grupos (A-G) para las 29 selecciones ya definidas en worldCupTeams.ts
+// Asignación de grupos (A-H, 4 equipos cada uno = 32 en total) para que el
+// primer cruce eliminatorio (Dieciseisavos, top 2 de cada grupo) dé un bracket
+// parejo: 16 -> Octavos (8) -> Cuartos (4) -> Semifinal (2) -> Final.
 const groupAssignments: Record<string, string> = {
   'Canadá': 'A', 'México': 'A', 'Estados Unidos': 'A', 'Costa Rica': 'A',
   'Argentina': 'B', 'Brasil': 'B', 'Uruguay': 'B', 'Colombia': 'B',
   'Ecuador': 'C', 'España': 'C', 'Francia': 'C', 'Alemania': 'C',
   'Inglaterra': 'D', 'Portugal': 'D', 'Países Bajos': 'D', 'Bélgica': 'D',
-  'Italia': 'E', 'Croacia': 'E', 'Japón': 'E', 'Corea del Sur': 'E',
-  'Irán': 'F', 'Arabia Saudita': 'F', 'Australia': 'F', 'Marruecos': 'F',
-  'Senegal': 'G', 'Nigeria': 'G', 'Egipto': 'G', 'Ghana': 'G', 'Nueva Zelanda': 'G'
+  'Italia': 'E', 'Croacia': 'E', 'Suiza': 'E', 'Polonia': 'E',
+  'Serbia': 'F', 'Japón': 'F', 'Corea del Sur': 'F', 'Irán': 'F',
+  'Arabia Saudita': 'G', 'Australia': 'G', 'Marruecos': 'G', 'Senegal': 'G',
+  'Nigeria': 'H', 'Egipto': 'H', 'Ghana': 'H', 'Nueva Zelanda': 'H'
 }
 
 // Sedes reales del Mundial 2026 (Canadá, México, Estados Unidos)
