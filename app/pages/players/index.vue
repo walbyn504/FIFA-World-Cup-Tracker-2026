@@ -96,7 +96,7 @@
       </UiGlassCard>
 
       <ul v-else class="flex flex-col gap-3">
-        <li v-for="player in filteredPlayers" :key="player.id">
+        <li v-for="player in paginatedPlayers" :key="player.id">
           <UiGlassCard
             class="w-full"
             content-class="flex items-center justify-between gap-4 px-5 py-4 text-left"
@@ -151,6 +151,14 @@
           </UiGlassCard>
         </li>
       </ul>
+
+      <UiPagination
+        v-if="!isLoading && !hasError && !isFiltering"
+        v-model="currentPage"
+        :total-items="filteredPlayers.length"
+        :items-per-page="itemsPerPage"
+        class="mt-6"
+      />
     </div>
 
     <PlayersPlayerFormModal
@@ -223,6 +231,19 @@ const filteredPlayers = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return source
   return source.filter((player) => player.name.toLowerCase().includes(query))
+})
+
+const itemsPerPage = 4
+const currentPage = ref(1)
+
+// Vuelve a la primera página cada vez que cambia el resultado filtrado
+watch(filteredPlayers, () => {
+  currentPage.value = 1
+})
+
+const paginatedPlayers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredPlayers.value.slice(start, start + itemsPerPage)
 })
 
 const loadPlayers = async () => {

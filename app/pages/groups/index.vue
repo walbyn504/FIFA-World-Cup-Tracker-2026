@@ -48,7 +48,7 @@
       </UiGlassCard>
 
       <div v-else class="grid grid-cols-[repeat(auto-fill,22rem)] items-start gap-4">
-        <UiGlassCard v-for="group in groups" :key="group" content-class="flex flex-col gap-2.5 px-5 py-3">
+        <UiGlassCard v-for="group in paginatedGroups" :key="group" content-class="flex flex-col gap-2.5 px-5 py-3">
           <div class="flex h-9 items-center justify-between gap-4">
             <h2 class="font-['Bebas_Neue'] text-xl tracking-wide text-[#D4AF37]">Grupo {{ group }}</h2>
 
@@ -79,6 +79,14 @@
           </ul>
         </UiGlassCard>
       </div>
+
+      <UiPagination
+        v-if="!isLoading && !hasError"
+        v-model="currentPage"
+        :total-items="groups.length"
+        :items-per-page="itemsPerPage"
+        class="mt-6"
+      />
     </div>
   </div>
 </template>
@@ -95,6 +103,19 @@ const hasError = ref(false)
 
 // Grupos ordenados alfabéticamente (A, B, C...)
 const groups = computed(() => Object.keys(standingsByGroup.value).sort())
+
+const itemsPerPage = 12
+const currentPage = ref(1)
+
+// Vuelve a la primera página cada vez que cambia la cantidad de grupos
+watch(groups, () => {
+  currentPage.value = 1
+})
+
+const paginatedGroups = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return groups.value.slice(start, start + itemsPerPage)
+})
 
 // Siempre 4 espacios por grupo, para que todas las tarjetas midan lo mismo
 // aunque el grupo todavía no tenga sus 4 selecciones
