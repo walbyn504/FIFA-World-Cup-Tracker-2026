@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen px-6 py-10 text-[#F5F0E6]">
-    <div class="mx-auto max-w-5xl">
+    <div class="mx-auto max-w-6xl">
       <div class="mb-6 flex items-center justify-between">
         <h1 class="font-['Bebas_Neue'] text-3xl tracking-wide">Grupos</h1>
         <UiRefreshButton :loading="isLoading" @click="loadStandings" />
@@ -47,32 +47,36 @@
         </div>
       </UiGlassCard>
 
-      <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <UiGlassCard v-for="group in groups" :key="group" class="w-full" content-class="flex flex-col gap-3 px-5 py-4">
-          <h2 class="font-['Bebas_Neue'] text-xl tracking-wide text-[#D4AF37]">Grupo {{ group }}</h2>
+      <div v-else class="grid grid-cols-[repeat(auto-fill,22rem)] items-start gap-4">
+        <UiGlassCard v-for="group in groups" :key="group" content-class="flex flex-col gap-2.5 px-5 py-3">
+          <div class="flex h-9 items-center justify-between gap-4">
+            <h2 class="font-['Bebas_Neue'] text-xl tracking-wide text-[#D4AF37]">Grupo {{ group }}</h2>
 
-          <ul class="flex flex-col gap-2">
-            <li
-              v-for="standing in standingsByGroup[group]"
-              :key="standing.teamId"
-              class="flex items-center gap-2"
+            <NuxtLink
+              :to="`/groups/${group}`"
+              class="shrink-0 text-sm font-bold text-white transition hover:text-[#D4AF37]"
             >
-              <img
-                v-if="standing.flag"
-                :src="standing.flag"
-                :alt="`Bandera de ${standing.teamName}`"
-                class="h-5 w-7 shrink-0 rounded border border-white/20 object-cover"
-              >
-              <span class="text-sm text-white">{{ standing.teamName }}</span>
+              Ver más
+            </NuxtLink>
+          </div>
+
+          <ul class="flex h-14 flex-wrap items-start gap-3 overflow-hidden">
+            <li
+              v-for="(standing, slotIndex) in getGroupSlots(group)"
+              :key="slotIndex"
+              class="flex h-14 w-16 flex-col items-center gap-1"
+            >
+              <template v-if="standing">
+                <img
+                  v-if="standing.flag"
+                  :src="standing.flag"
+                  :alt="`Bandera de ${standing.teamName}`"
+                  class="h-8 w-12 shrink-0 rounded border border-white/20 object-cover"
+                >
+                <span class="w-full truncate text-center text-xs text-white" :title="standing.teamName">{{ standing.teamName }}</span>
+              </template>
             </li>
           </ul>
-
-          <NuxtLink
-            :to="`/groups/${group}`"
-            class="mt-1 self-start rounded-xl bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-[#04140D] transition hover:brightness-110"
-          >
-            Ver información
-          </NuxtLink>
         </UiGlassCard>
       </div>
     </div>
@@ -91,6 +95,13 @@ const hasError = ref(false)
 
 // Grupos ordenados alfabéticamente (A, B, C...)
 const groups = computed(() => Object.keys(standingsByGroup.value).sort())
+
+// Siempre 4 espacios por grupo, para que todas las tarjetas midan lo mismo
+// aunque el grupo todavía no tenga sus 4 selecciones
+const getGroupSlots = (group: string): (TeamStanding | null)[] => {
+  const teams = standingsByGroup.value[group] ?? []
+  return Array.from({ length: 4 }, (_, i) => teams[i] ?? null)
+}
 
 const loadStandings = async () => {
   isLoading.value = true

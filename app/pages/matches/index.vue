@@ -215,6 +215,7 @@
       :visible="isModalOpen"
       :initial-data="matchBeingEdited"
       :teams="teams"
+      :matches="matches"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />

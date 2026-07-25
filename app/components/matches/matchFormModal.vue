@@ -19,7 +19,8 @@
             <select
               v-model="form.stage"
               :disabled="isLocked"
-              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] 
+              outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.stage ? 'border-red-400/60' : 'border-white/20'"
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona una fase</option>
@@ -34,14 +35,14 @@
             </select>
             <span v-if="errors.stage" class="text-xs text-red-400">{{ errors.stage }}</span>
           </label>
-
           <div class="grid grid-cols-2 gap-4">
             <label class="flex flex-col gap-1.5 text-sm text-white/70">
               Local
               <select
                 v-model="form.homeTeam"
                 :disabled="isLocked"
-                class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+                class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-
+                [#D4AF37] disabled:cursor-not-allowed disabled:opacity-90 disabled:text-white"
                 :class="errors.homeTeam ? 'border-red-400/60' : 'border-white/20'"
               >
                 <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un equipo</option>
@@ -54,7 +55,6 @@
                   {{ team.name }}
                 </option>
               </select>
-              <span v-if="errors.homeTeam" class="text-xs text-red-400">{{ errors.homeTeam }}</span>
             </label>
 
             <label class="flex flex-col gap-1.5 text-sm text-white/70">
@@ -62,7 +62,8 @@
               <select
                 v-model="form.awayTeam"
                 :disabled="isLocked"
-                class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+                class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-
+                [#D4AF37] disabled:cursor-not-allowed disabled:opacity-90 disabled:text-white"
                 :class="errors.awayTeam ? 'border-red-400/60' : 'border-white/20'"
               >
                 <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un equipo</option>
@@ -75,16 +76,17 @@
                   {{ team.name }}
                 </option>
               </select>
-              <span v-if="errors.awayTeam" class="text-xs text-red-400">{{ errors.awayTeam }}</span>
             </label>
           </div>
-
+          <span v-if="errors.homeTeam" class="text-xs text-red-400">{{ errors.homeTeam }}</span>
+          <span v-if="errors.awayTeam" class="-mt-2 text-xs text-red-400">{{ errors.awayTeam }}</span>
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
             Ciudad
             <select
               v-model="form.city"
               :disabled="isLocked"
-              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] 
+              disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.city ? 'border-red-400/60' : 'border-white/20'"
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona una ciudad</option>
@@ -105,7 +107,8 @@
             <select
               v-model="form.stadium"
               :disabled="isLocked || !form.city"
-              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] 
+              disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.stadium ? 'border-red-400/60' : 'border-white/20'"
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un estadio</option>
@@ -149,7 +152,8 @@
               :min="form.status === 'scheduled' ? nowKickoff() : undefined"
               :max="form.status !== 'scheduled' ? nowKickoff() : undefined"
               :disabled="isLocked"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] 
+              disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.kickoff ? 'border-red-400/60' : 'border-white/20'"
             >
             <span v-if="errors.kickoff" class="text-xs text-red-400">{{ errors.kickoff }}</span>
@@ -214,6 +218,7 @@ const props = defineProps<{
   visible: boolean
   initialData?: (Match & { id?: string }) | null
   teams: (Team & { id: string })[]
+  matches: (Match & { id?: string })[] 
 }>()
 
 // Define los eventos que el componente puede emitir
@@ -307,37 +312,56 @@ const validateKickoff = (): string => {
 }
 
 // Filtra las opciones del visitante segun el grupo del local ya elegido (si aplica)
+// y siempre incluye el equipo ya guardado, aunque el filtro lo hubiera excluido
 const availableAwayTeams = computed(() => {
+  let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.homeTeam) {
     const homeGroup = props.teams.find((t) => t.name === form.value.homeTeam)?.group?.toUpperCase()
-    return props.teams.filter((t) => t.group?.toUpperCase() === homeGroup && t.name !== form.value.homeTeam)
+    list = props.teams.filter((t) => t.group?.toUpperCase() === homeGroup && t.name !== form.value.homeTeam)
+  } else {
+    list = props.teams.filter((t) => t.name !== form.value.homeTeam)
   }
-  return props.teams.filter((t) => t.name !== form.value.homeTeam)
+  if (form.value.awayTeam && !list.some((t) => t.name === form.value.awayTeam)) {
+    const current = props.teams.find((t) => t.name === form.value.awayTeam)
+    if (current) list = [current, ...list]
+  }
+  return list
 })
 
 // Filtra las opciones del local segun el grupo del visitante ya elegido (si aplica)
 const availableHomeTeams = computed(() => {
+  let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.awayTeam) {
     const awayGroup = props.teams.find((t) => t.name === form.value.awayTeam)?.group?.toUpperCase()
-    return props.teams.filter((t) => t.group?.toUpperCase() === awayGroup && t.name !== form.value.awayTeam)
+    list = props.teams.filter((t) => t.group?.toUpperCase() === awayGroup && t.name !== form.value.awayTeam)
+  } else {
+    list = props.teams.filter((t) => t.name !== form.value.awayTeam)
   }
-  return props.teams.filter((t) => t.name !== form.value.awayTeam)
+  if (form.value.homeTeam && !list.some((t) => t.name === form.value.homeTeam)) {
+    const current = props.teams.find((t) => t.name === form.value.homeTeam)
+    if (current) list = [current, ...list]
+  }
+  return list
 })
 
 // Ciudades que tuvieron sedes en la fase elegida (catálogo del Mundial 2026)
 const availableCities = computed(() => {
-  if (!form.value.stage) return matchVenues.map((v) => v.city)
-  return matchVenues.filter((v) => v.stages.includes(form.value.stage)).map((v) => v.city)
+  const list = !form.value.stage
+    ? matchVenues.map((v) => v.city)
+    : matchVenues.filter((v) => v.stages.includes(form.value.stage)).map((v) => v.city)
+  if (form.value.city && !list.includes(form.value.city)) {
+    return [form.value.city, ...list]
+  }
+  return list
 })
 
 // Estadios de la ciudad ya elegida (cada ciudad tiene un único estadio en el catálogo)
 const availableStadiums = computed(() => {
-  if (!form.value.city) return []
-  return matchVenues.filter((v) => v.city === form.value.city).map((v) => v.stadium)
-})
-
-watch([() => form.value.kickoff, () => form.value.status], () => {
-  errors.value.kickoff = validateKickoff()
+  const list = !form.value.city ? [] : matchVenues.filter((v) => v.city === form.value.city).map((v) => v.stadium)
+  if (form.value.stadium && !list.includes(form.value.stadium)) {
+    return [form.value.stadium, ...list]
+  }
+  return list
 })
 
 // Evita que el auto-completado de estadio/ciudad se dispare al cargar el formulario
@@ -389,6 +413,26 @@ const validate = (): boolean => {
     errors.value.awayTeam = 'El equipo visitante es obligatorio.'
   } else if (form.value.awayTeam === form.value.homeTeam) {
     errors.value.awayTeam = 'El visitante debe ser distinto al local.'
+  }else if (form.value.stage === 'Fase de grupos') {
+    const homeGroup = props.teams.find((t) => t.name === form.value.homeTeam)?.group?.toUpperCase()
+    const awayGroup = props.teams.find((t) => t.name === form.value.awayTeam)?.group?.toUpperCase()
+
+    if (homeGroup && awayGroup && homeGroup !== awayGroup) {
+      errors.value.awayTeam = `En fase de grupos, ambos equipos deben ser del mismo grupo (local: Grupo ${homeGroup}).`
+    } else {
+      const duplicate = props.matches.find((m) => {
+        if (m.id === props.initialData?.id) return false
+        if (m.stage !== 'Fase de grupos') return false
+        const sameTeams =
+          (m.homeTeam === form.value.homeTeam && m.awayTeam === form.value.awayTeam) ||
+          (m.homeTeam === form.value.awayTeam && m.awayTeam === form.value.homeTeam)
+        return sameTeams
+      })
+
+      if (duplicate) {
+        errors.value.awayTeam = `Ya existe un partido entre ${form.value.homeTeam} y ${form.value.awayTeam} en fase de grupos.`
+      }
+    }
   }
 
   if (!form.value.stadium?.trim()) {
