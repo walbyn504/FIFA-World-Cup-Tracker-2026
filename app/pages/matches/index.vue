@@ -16,7 +16,22 @@
           placeholder="Buscar por estadio o ciudad..."
           class="rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
         >
-        <div class="flex flex-col gap-3 sm:flex-row">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <select
+            v-model="selectedTeamName"
+            class="flex-1 rounded-xl border border-white/20 bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+          >
+            <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Todas las selecciones</option>
+            <option
+              v-for="team in sortedTeams"
+              :key="team.id"
+              :value="team.name"
+              class="bg-[#0F1F17] text-[#F5F0E6]"
+            >
+              {{ team.name }}
+            </option>
+          </select>
+
           <select
             v-model="selectedStage"
             :disabled="isFiltering"
@@ -192,8 +207,9 @@
                   </svg>
                 </button>
                 <button
-                  title="Eliminar partido"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50"
+                  :title="match.status === 'finished' ? 'Un partido finalizado no se puede eliminar' : 'Eliminar partido'"
+                  :disabled="match.status === 'finished'"
+                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/35"
                   @click="askDelete(match.id)"
                 >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -225,6 +241,8 @@
       :teams="teams"
       :matches="matches"
       :players="players"
+      :unlocked-stages="unlockedStages"
+      :projected-bracket="projectedBracket"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
@@ -244,18 +262,32 @@ import type { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
+import type { TeamStanding } from '~/composables/useStandings'
+import { getUnlockedStages, computeProjectedBracket } from '~/composables/useBracket'
 import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
 
 const { getAllMatches, getMatchesByStage, getMatchesByGroup, createMatch, updateMatch, deleteMatch } = useMatches()
 const { getAllTeams } = useTeams()
 const { getAllPlayers } = usePlayers()
 const { generateBracket } = useBracket()
+const { getGroupStandings } = useStandings()
 const { success, error } = useNotify()
 
 const matches = ref<(Match & { id: string })[]>([])
 const queriedMatches = ref<(Match & { id: string })[] | null>(null)
 const teams = ref<(Team & { id: string })[]>([])
 const players = ref<(Player & { id: string })[]>([])
+const standings = ref<Record<string, TeamStanding[]>>({})
+
+// Fases que ya se le pueden asignar a un partido: fase de grupos siempre, y
+// cada fase eliminatoria solo una vez que la anterior esté completa (el resto
+// se genera solo desde la llave)
+const unlockedStages = computed(() => getUnlockedStages(standings.value, matches.value))
+
+// Cruces reales de cada fase eliminatoria (quién enfrenta a quién según la
+// llave), para que el formulario solo deje elegir rivales que de verdad se
+// enfrentan en esa fase
+const projectedBracket = computed(() => computeProjectedBracket(standings.value, matches.value))
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -263,6 +295,7 @@ const isModalOpen = ref(false)
 const isConfirmOpen = ref(false)
 const matchToDelete = ref<string | null>(null)
 const searchQuery = ref('')
+const selectedTeamName = ref('')
 const selectedStage = ref('')
 const selectedGroup = ref('')
 const selectedStatus = ref<MatchStatus | ''>('')
@@ -274,6 +307,9 @@ const matchBeingEdited = ref<(Match & { id: string }) | null>(null)
 
 // Grupos distintos presentes en los equipos registrados, para el filtro de grupo
 const availableGroups = computed(() => [...new Set(teams.value.map((t) => t.group))].sort())
+
+// Selecciones ordenadas alfabéticamente, para el filtro de selección
+const sortedTeams = computed(() => [...teams.value].sort((a, b) => a.name.localeCompare(b.name)))
 
 const teamFlag = (teamName: string) => teams.value.find((t) => t.name === teamName)?.flag ?? ''
 
@@ -316,6 +352,12 @@ watch([selectedStage, selectedGroup], applyQueryFilter)
 // Aplica estado, fecha y buscador sobre la fase/grupo elegido (o sobre todos los partidos)
 const filteredMatches = computed(() => {
   let result = (selectedStage.value || selectedGroup.value) ? (queriedMatches.value ?? []) : matches.value
+
+  if (selectedTeamName.value) {
+    result = result.filter(
+      (match) => match.homeTeam === selectedTeamName.value || match.awayTeam === selectedTeamName.value
+    )
+  }
 
   if (selectedStatus.value) {
     result = result.filter((match) => match.status === selectedStatus.value)
@@ -365,10 +407,13 @@ const loadMatches = async () => {
   isLoading.value = true
   hasError.value = false
   try {
-    const [allMatches, allTeams, allPlayers] = await Promise.all([getAllMatches(), getAllTeams(), getAllPlayers()])
+    const [allMatches, allTeams, allPlayers, groupStandings] = await Promise.all([
+      getAllMatches(), getAllTeams(), getAllPlayers(), getGroupStandings()
+    ])
     matches.value = allMatches
     teams.value = allTeams
     players.value = allPlayers
+    standings.value = groupStandings
     if (selectedStage.value || selectedGroup.value) {
       await applyQueryFilter()
     }
@@ -417,6 +462,9 @@ const handleSubmit = async (match: Match) => {
 }
 
 const askDelete = (id: string) => {
+  const match = matches.value.find((m) => m.id === id)
+  if (match?.status === 'finished') return
+
   matchToDelete.value = id
   isConfirmOpen.value = true
 }
