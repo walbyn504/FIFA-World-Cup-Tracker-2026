@@ -135,8 +135,9 @@
                   </svg>
               </button>
               <button
-                  title="Eliminar jugador"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50"
+                  :title="blockDeleteReason(player) ?? 'Eliminar jugador'"
+                  :disabled="!!blockDeleteReason(player)"
+                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/35"
                   @click="askDelete(player.id)"
               >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -166,6 +167,8 @@
       :initial-data="playerBeingEdited"
       :teams="teams"
       :players="players"
+      :matches="matches"
+      :standings="standings"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
@@ -183,14 +186,43 @@
 <script setup lang="ts">
 import type { Player } from '~~/shared/types/player'
 import type { Team } from '~~/shared/types/team'
+import type { Match } from '~~/shared/types/match'
+import type { TeamStanding } from '~/composables/useStandings'
+import { isTeamStillInContention } from '~/composables/useBracket'
 
 const { getAllPlayers, getPlayersByTeam, createPlayer, updatePlayer, deletePlayer } = usePlayers()
 const { getAllTeams } = useTeams()
+const { getAllMatches } = useMatches()
+const { getGroupStandings } = useStandings()
 const { success, error } = useNotify()
 
 const players = ref<(Player & { id: string })[]>([])
 const teamPlayers = ref<(Player & { id: string })[] | null>(null)
 const teams = ref<(Team & { id: string })[]>([])
+const matches = ref<(Match & { id: string })[]>([])
+const standings = ref<Record<string, TeamStanding[]>>({})
+
+// Un jugador no se puede eliminar si su selección tiene un partido en curso
+// (programado o en vivo), o si todavía sigue en competencia en la llave
+// eliminatoria (aunque el próximo cruce no se haya generado todavía, por
+// ejemplo mientras espera el resultado del rival de la ronda anterior)
+const blockDeleteReason = (player: Player & { id: string }): string | null => {
+  const team = teams.value.find((t) => t.id === player.teamId)
+  if (!team) return null
+
+  const hasPendingMatch = matches.value.some(
+    (m) => (m.homeTeam === team.name || m.awayTeam === team.name) && m.status !== 'finished'
+  )
+  if (hasPendingMatch) {
+    return `No se puede eliminar: ${team.name} tiene un partido programado o en vivo.`
+  }
+
+  if (isTeamStillInContention(team.name, standings.value, matches.value)) {
+    return `No se puede eliminar: ${team.name} todavía sigue en competencia y puede necesitar su plantilla completa.`
+  }
+
+  return null
+}
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -251,9 +283,13 @@ const loadPlayers = async () => {
   isLoading.value = true
   hasError.value = false
   try {
-    const [allPlayers, allTeams] = await Promise.all([getAllPlayers(), getAllTeams()])
+    const [allPlayers, allTeams, allMatches, groupStandings] = await Promise.all([
+      getAllPlayers(), getAllTeams(), getAllMatches(), getGroupStandings()
+    ])
     players.value = allPlayers
     teams.value = allTeams
+    matches.value = allMatches
+    standings.value = groupStandings
     if (selectedTeamId.value) {
       await applyTeamFilter(selectedTeamId.value)
     }
@@ -293,6 +329,15 @@ const handleSubmit = async (player: Player) => {
 }
 
 const askDelete = (id: string) => {
+  const player = players.value.find((p) => p.id === id)
+  if (!player) return
+
+  const reason = blockDeleteReason(player)
+  if (reason) {
+    error(reason)
+    return
+  }
+
   playerToDelete.value = id
   isConfirmOpen.value = true
 }

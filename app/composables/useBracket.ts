@@ -288,6 +288,49 @@ export const getUnlockedStages = (
   return unlocked
 }
 
+// Un equipo "sigue en competencia" si todavía puede necesitar su plantilla
+// completa más adelante, aunque en este momento no tenga ningún partido real
+// "scheduled"/"live" (por ejemplo, mientras espera a que se resuelva el cruce
+// de su rival en la ronda anterior y el partido siguiente todavía no se generó).
+// Devuelve false mientras la fase de grupos no haya terminado: ahí ya alcanza
+// con la regla simple de "tiene un partido pendiente".
+export const isTeamStillInContention = (
+  teamName: string,
+  standings: Record<string, TeamStanding[]>,
+  matches: (Match & { id: string })[]
+): boolean => {
+  const info = computeFirstRoundFixtures(standings)
+  if (!info) return false
+
+  const qualified = new Set(info.fixtures.flat())
+  if (!qualified.has(teamName)) return false
+
+  const projected = computeProjectedBracket(standings, matches)
+
+  let stage: string | undefined = info.stage
+  while (stage) {
+    const slot = (projected[stage] || []).find((s) => s.homeTeam === teamName || s.awayTeam === teamName)
+    if (!slot?.match || slot.match.status !== 'finished') return true
+
+    if (winnerOf(slot.match) === teamName) {
+      stage = NEXT_STAGE[stage]
+      continue
+    }
+
+    // Perder la semifinal no elimina del todo: todavía puede quedar el Tercer lugar
+    if (stage === 'Semifinal') {
+      const thirdMatch = (projected['Tercer lugar'] || []).find(
+        (s) => s.homeTeam === teamName || s.awayTeam === teamName
+      )?.match
+      return !thirdMatch || thirdMatch.status !== 'finished'
+    }
+
+    return false
+  }
+
+  return true
+}
+
 export const useBracket = () => {
   const { getAll } = useFirestore()
   const { getGroupStandings } = useStandings()

@@ -14,7 +14,8 @@
             Selección
             <select
               v-model="form.name"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+              :disabled="nameLocked"
+              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.name ? 'border-red-400/60' : 'border-white/20'"
               @change="handleTeamNameChange"
             >
@@ -28,6 +29,9 @@
                 {{ t.name }}
               </option>
             </select>
+            <p v-if="nameLocked" class="text-xs text-white/40">
+              No se puede cambiar: esta selección ya tiene jugadores o partidos registrados.
+            </p>
             <span v-if="errors.name" class="text-xs text-red-400">{{ errors.name }}</span>
           </label>
 
@@ -119,6 +123,7 @@ const props = defineProps<{
   visible: boolean
   initialData?: (Team & { id: string }) | null
   teams: (Team & { id: string })[]
+  nameLocked?: boolean
 }>()
 
 // Define los eventos que el componente puede emitir
