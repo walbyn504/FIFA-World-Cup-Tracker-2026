@@ -405,7 +405,7 @@ export const useBracket = () => {
     const kickoffBase = new Date()
     kickoffBase.setDate(kickoffBase.getDate() + 7)
     kickoffBase.setHours(16, 0, 0, 0)
-    const messages: string[] = []
+    let createdCount = 0
 
     fixtures.forEach(([homeTeam, awayTeam], slot) => {
       if (existing.some((m) => sameMatchup(m, homeTeam, awayTeam))) return
@@ -414,10 +414,10 @@ export const useBracket = () => {
       kickoff.setHours(kickoffBase.getHours() + slot * 3)
 
       createMatch(placeholderMatch(homeTeam, awayTeam, stage, kickoff, slot))
-      messages.push(`Se generó un cruce de ${stage}: ${homeTeam} vs ${awayTeam}.`)
+      createdCount++
     })
 
-    return messages
+    return createdCount > 0 ? [`Se generaron los cruces de ${stage}.`] : []
   }
 
   // Genera el partido de la siguiente ronda para cada par de "fromStage" en
@@ -442,7 +442,8 @@ export const useBracket = () => {
     const kickoffBase = new Date((fromKickoffs.length ? Math.max(...fromKickoffs) : Date.now()) + 7 * 24 * 60 * 60 * 1000)
     const existingNext = allMatches.filter((m) => m.stage === toStage)
     const existingThird = allMatches.filter((m) => m.stage === 'Tercer lugar')
-    const messages: string[] = []
+    let nextCreated = false
+    let thirdCreated = false
 
     for (let i = 0; i + 1 < fromSlots.length; i += 2) {
       const matchA = fromSlots[i]!.match
@@ -458,7 +459,7 @@ export const useBracket = () => {
 
       if (!existingNext.some((m) => sameMatchup(m, homeTeam, awayTeam))) {
         await createMatch(placeholderMatch(homeTeam, awayTeam, toStage, kickoff, slot))
-        messages.push(`Se generó un cruce de ${toStage}: ${homeTeam} vs ${awayTeam}.`)
+        nextCreated = true
       }
 
       if (fromStage === 'Semifinal') {
@@ -466,11 +467,14 @@ export const useBracket = () => {
         const thirdAway = loserOf(matchB)
         if (!existingThird.some((m) => sameMatchup(m, thirdHome, thirdAway))) {
           await createMatch(placeholderMatch(thirdHome, thirdAway, 'Tercer lugar', kickoff, slot))
-          messages.push(`Se generó el partido por el Tercer lugar: ${thirdHome} vs ${thirdAway}.`)
+          thirdCreated = true
         }
       }
     }
 
+    const messages: string[] = []
+    if (nextCreated) messages.push(`Se generaron los cruces de ${toStage}.`)
+    if (thirdCreated) messages.push('Se generó el partido por el Tercer lugar.')
     return messages
   }
 
