@@ -3,6 +3,23 @@
     <div class="mx-auto max-w-6xl">
       <div class="mb-6 flex items-center justify-between">
         <h1 class="font-['Bebas_Neue'] text-3xl tracking-wide">Grupos</h1>
+      </div>
+
+      <div v-if="!hasError && groups.length > 0" class="mb-5 flex items-center gap-2">
+        <select
+          v-model="selectedGroup"
+          class="w-full rounded-xl border border-white/20 bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] sm:w-64"
+        >
+          <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Todos los grupos</option>
+          <option
+            v-for="group in groups"
+            :key="group"
+            :value="group"
+            class="bg-[#0F1F17] text-[#F5F0E6]"
+          >
+            Grupo {{ group }}
+          </option>
+        </select>
         <UiRefreshButton :loading="isLoading" @click="loadStandings" />
       </div>
 
@@ -47,16 +64,38 @@
         </div>
       </UiGlassCard>
 
+      <UiGlassCard v-else-if="filteredGroups.length === 0" class="w-full">
+        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white/60">
+          <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-medium text-white">Sin resultados</p>
+          <p class="mt-1 text-sm text-white/60">Ningún grupo coincide con el filtro aplicado.</p>
+        </div>
+      </UiGlassCard>
+
       <div v-else class="grid grid-cols-[repeat(auto-fill,22rem)] items-start gap-4">
         <UiGlassCard v-for="group in paginatedGroups" :key="group" content-class="flex flex-col gap-2.5 px-5 py-3">
           <div class="flex h-9 items-center justify-between gap-4">
-            <h2 class="font-['Bebas_Neue'] text-xl tracking-wide text-[#D4AF37]">Grupo {{ group }}</h2>
+            <div class="flex items-center gap-2">
+              <h2 class="font-['Bebas_Neue'] text-xl tracking-wide text-[#D4AF37]">Grupo {{ group }}</h2>
+              <span
+                v-if="teamCount(group) < 4"
+                :title="`Faltan ${4 - teamCount(group)} selección(es) para completar el grupo`"
+                class="rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold text-yellow-300"
+              >
+                {{ teamCount(group) }}/4
+              </span>
+            </div>
 
             <NuxtLink
               :to="`/groups/${group}`"
               class="shrink-0 text-sm font-bold text-white transition hover:text-[#D4AF37]"
             >
-              Ver más
+              Tabla de posiciones
             </NuxtLink>
           </div>
 
@@ -83,7 +122,7 @@
       <UiPagination
         v-if="!isLoading && !hasError"
         v-model="currentPage"
-        :total-items="groups.length"
+        :total-items="filteredGroups.length"
         :items-per-page="itemsPerPage"
         class="mt-6"
       />
@@ -104,18 +143,28 @@ const hasError = ref(false)
 // Grupos ordenados alfabéticamente (A, B, C...)
 const groups = computed(() => Object.keys(standingsByGroup.value).sort())
 
+const selectedGroup = ref('')
+
+// Filtra por el grupo elegido en el buscador (o muestra todos)
+const filteredGroups = computed(() =>
+  selectedGroup.value ? groups.value.filter((group) => group === selectedGroup.value) : groups.value
+)
+
 const itemsPerPage = 12
 const currentPage = ref(1)
 
-// Vuelve a la primera página cada vez que cambia la cantidad de grupos
-watch(groups, () => {
+// Vuelve a la primera página cada vez que cambia el resultado filtrado
+watch(filteredGroups, () => {
   currentPage.value = 1
 })
 
 const paginatedGroups = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
-  return groups.value.slice(start, start + itemsPerPage)
+  return filteredGroups.value.slice(start, start + itemsPerPage)
 })
+
+// Cantidad real de selecciones cargadas en el grupo (para el aviso de grupo incompleto)
+const teamCount = (group: string): number => standingsByGroup.value[group]?.length ?? 0
 
 // Siempre 4 espacios por grupo, para que todas las tarjetas midan lo mismo
 // aunque el grupo todavía no tenga sus 4 selecciones
