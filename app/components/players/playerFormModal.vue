@@ -19,7 +19,7 @@
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un equipo</option>
               <option
-                v-for="team in teams"
+                v-for="team in sortedTeams"
                 :key="team.id"
                 :value="team.id"
                 class="bg-[#0F1F17] text-[#F5F0E6]"
@@ -144,7 +144,10 @@ const emit = defineEmits<{
   submit: [player: Player]
 }>()
 
-const positions = ['Portero', 'Defensa', 'Mediocampista', 'Delantero']
+const positions = ['Defensa', 'Delantero', 'Mediocampista', 'Portero']
+
+// Selecciones ordenadas alfabéticamente, para el select de "Selección"
+const sortedTeams = computed(() => [...props.teams].sort((a, b) => a.name.localeCompare(b.name)))
 
 // Define un jugador vacío para inicializar el formulario
 const emptyPlayer: Player = {

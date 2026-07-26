@@ -219,4 +219,4 @@ export const clubCatalog: ClubCatalogEntry[] = [
   { country: 'Nueva Zelanda', club: 'Team Wellington' }
 ]
 
-export const clubNames: string[] = clubCatalog.map((c) => c.club)
+export const clubNames: string[] = clubCatalog.map((c) => c.club).sort((a, b) => a.localeCompare(b))

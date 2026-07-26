@@ -4,7 +4,10 @@ export interface WorldCupTeamPreset {
   flag: string
 }
 
-export const worldCupTeams: WorldCupTeamPreset[] = [
+// Se agrupa por confederación acá abajo solo para que sea más fácil de mantener
+// (agregar/quitar selecciones por zona de clasificación); el export ordena por
+// nombre, que es como se necesita en el select del formulario de equipos.
+const worldCupTeamsByConfederation: WorldCupTeamPreset[] = [
   // CONMEBOL (6)
   { name: 'Argentina', confederation: 'CONMEBOL', flag: 'https://flagcdn.com/w320/ar.png' },
   { name: 'Brasil', confederation: 'CONMEBOL', flag: 'https://flagcdn.com/w320/br.png' },
@@ -65,3 +68,7 @@ export const worldCupTeams: WorldCupTeamPreset[] = [
   // OFC (1)
   { name: 'Nueva Zelanda', confederation: 'OFC', flag: 'https://flagcdn.com/w320/nz.png' }
 ]
+
+export const worldCupTeams: WorldCupTeamPreset[] = [...worldCupTeamsByConfederation].sort(
+  (a, b) => a.name.localeCompare(b.name)
+)
