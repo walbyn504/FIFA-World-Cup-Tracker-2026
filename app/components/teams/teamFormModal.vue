@@ -37,14 +37,21 @@
 
           <label class="flex flex-col gap-1.5 text-sm text-white/70">
             Grupo
-            <input
+            <select
               v-model="form.group"
-              placeholder="A"
-              maxlength="1"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] placeholder-white/30 outline-none focus:border-[#D4AF37]"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
               :class="errors.group ? 'border-red-400/60' : 'border-white/20'"
-              @input="form.group = form.group.toUpperCase().replace(/[^A-Z]/g, '')"
             >
+              <option value="" disabled class="bg-[#0F1F17] text-[#F5F0E6]">Elige un grupo...</option>
+              <option
+                v-for="letter in groupLetters"
+                :key="letter"
+                :value="letter"
+                class="bg-[#0F1F17] text-[#F5F0E6]"
+              >
+                Grupo {{ letter }}
+              </option>
+            </select>
             <span v-if="errors.group" class="text-xs text-red-400">{{ errors.group }}</span>
           </label>
 
@@ -117,6 +124,9 @@
 <script setup lang="ts">
 import type { Team } from '~~/shared/types/team'
 import { worldCupTeams } from '~/utils/worldCupTeams'
+
+// Grupos del Mundial 2026: 12 grupos, de la A a la L
+const groupLetters = Array.from({ length: 12 }, (_, i) => String.fromCharCode(65 + i))
 
 // Define las propiedades que el componente espera recibir
 const props = defineProps<{
