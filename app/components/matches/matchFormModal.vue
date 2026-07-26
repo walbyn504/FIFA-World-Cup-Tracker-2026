@@ -10,7 +10,10 @@
         </h2>
 
         <form class="match-form-scroll flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1" novalidate @submit.prevent="handleSubmit">
-          <p v-if="isLocked" class="-mb-1 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/60">
+          <p v-if="isFinished" class="-mb-1 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/60">
+            Este partido ya está finalizado: no se puede editar ni eliminar.
+          </p>
+          <p v-else-if="isLocked" class="-mb-1 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/60">
             Este partido ya está {{ matchStatusLabels[props.initialData!.status].toLowerCase() }}: solo se puede actualizar el marcador y el estado.
           </p>
 
@@ -25,7 +28,7 @@
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona una fase</option>
               <option
-                v-for="stage in matchStages"
+                v-for="stage in availableStages"
                 :key="stage"
                 :value="stage"
                 class="bg-[#0F1F17] text-[#F5F0E6]"
@@ -33,6 +36,9 @@
                 {{ stage }}
               </option>
             </select>
+            <p v-if="!isLocked" class="text-xs text-white/40">
+              Las fases de eliminación directa se habilitan solas a medida que avanza el torneo.
+            </p>
             <span v-if="errors.stage" class="text-xs text-red-400">{{ errors.stage }}</span>
           </label>
           <div class="grid grid-cols-2 gap-4">
@@ -128,7 +134,8 @@
             Estado
             <select
               v-model="form.status"
-              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+              :disabled="isFinished"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.status ? 'border-red-400/60' : 'border-white/20'"
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un estado</option>
@@ -166,7 +173,8 @@
                 v-model.number="form.homeScore"
                 type="number"
                 min="0"
-                class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+                :disabled="isFinished"
+                class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
                 :class="errors.homeScore ? 'border-red-400/60' : 'border-white/20'"
               >
               <span v-if="errors.homeScore" class="text-xs text-red-400">{{ errors.homeScore }}</span>
@@ -178,7 +186,8 @@
                 v-model.number="form.awayScore"
                 type="number"
                 min="0"
-                class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+                :disabled="isFinished"
+                class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
                 :class="errors.awayScore ? 'border-red-400/60' : 'border-white/20'"
               >
               <span v-if="errors.awayScore" class="text-xs text-red-400">{{ errors.awayScore }}</span>
@@ -191,9 +200,10 @@
               class="rounded-xl border border-white/20 px-4 py-2.5 text-[#F5F0E6] hover:bg-white/5"
               @click="$emit('close')"
             >
-              Cancelar
+              {{ isFinished ? 'Cerrar' : 'Cancelar' }}
             </button>
             <button
+              v-if="!isFinished"
               type="submit"
               class="rounded-xl bg-[#D4AF37] px-4 py-2.5 font-semibold text-[#04140D] hover:brightness-110"
             >
@@ -211,7 +221,8 @@ import { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
-import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
+import type { ProjectedSlot } from '~/composables/useBracket'
+import { matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
 import { matchVenues } from '~/utils/matchVenues'
 
 // Cantidad mínima de jugadores en plantilla para poder disputar un partido
@@ -224,6 +235,8 @@ const props = defineProps<{
   teams: (Team & { id: string })[]
   matches: (Match & { id?: string })[]
   players: (Player & { id?: string })[]
+  unlockedStages: string[]
+  projectedBracket: Record<string, ProjectedSlot[]>
 }>()
 
 // Define los eventos que el componente puede emitir
@@ -266,6 +279,21 @@ const isEditing = computed(() => !!props.initialData)
 // Un partido que ya arrancó (en vivo) o terminó no puede cambiar de equipos, estadio,
 // fecha, etc.: solo se actualiza el marcador y el estado (para poder pasar de en vivo a finalizado)
 const isLocked = computed(() => isEditing.value && props.initialData?.status !== 'scheduled')
+
+// Un partido ya finalizado no se puede volver a editar de ninguna forma (ni
+// el marcador): queda fijo para siempre
+const isFinished = computed(() => isEditing.value && props.initialData?.status === 'finished')
+
+// Fases que se pueden elegir ahora mismo: las que ya están habilitadas según el
+// avance del torneo, más la fase propia del partido (si se está editando uno ya
+// creado), para no dejarlo sin opción válida aunque esa fase ya no esté "activa"
+const availableStages = computed(() => {
+  const original = props.initialData?.stage
+  if (original && !props.unlockedStages.includes(original)) {
+    return [original, ...props.unlockedStages]
+  }
+  return props.unlockedStages
+})
 
 // No se puede "retroceder" el estado de un partido (de en vivo a programado, o de finalizado a otra cosa)
 const availableStatuses = computed(() => {
@@ -316,13 +344,40 @@ const validateKickoff = (): string => {
   return ''
 }
 
-// Filtra las opciones del visitante segun el grupo del local ya elegido (si aplica)
-// y siempre incluye el equipo ya guardado, aunque el filtro lo hubiera excluido
+// En fase eliminatoria no hay "grupo": el rival de cada equipo ya lo fija la
+// llave (computeProjectedBracket), así que el formulario no puede dejar armar
+// cualquier combinación, solo el cruce real de esa fase
+const isKnockoutStage = computed(() => !!form.value.stage && form.value.stage !== 'Fase de grupos')
+const stageMatchups = computed(() => props.projectedBracket[form.value.stage] || [])
+
+// Nombre del rival que le toca a `teamName` en la fase elegida, según la llave
+// (undefined si ese equipo no juega esa fase, o la llave todavía no lo define)
+const bracketOpponentOf = (teamName: string): string | undefined => {
+  const pair = stageMatchups.value.find((m) => m.homeTeam === teamName || m.awayTeam === teamName)
+  if (!pair) return undefined
+  return pair.homeTeam === teamName ? pair.awayTeam : pair.homeTeam
+}
+
+// Todos los equipos que juegan la fase elegida, según la llave
+const teamsInStage = computed(() => {
+  const names = new Set(stageMatchups.value.flatMap((m) => [m.homeTeam, m.awayTeam]).filter(Boolean))
+  return props.teams.filter((t) => names.has(t.name))
+})
+
+// Filtra las opciones del visitante: en fase de grupos, segun el grupo del local
+// ya elegido; en fase eliminatoria, solo el rival real que le toca al local
+// según la llave. Siempre incluye el equipo ya guardado, aunque el filtro lo
+// hubiera excluido
 const availableAwayTeams = computed(() => {
   let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.homeTeam) {
     const homeGroup = props.teams.find((t) => t.name === form.value.homeTeam)?.group?.toUpperCase()
     list = props.teams.filter((t) => t.group?.toUpperCase() === homeGroup && t.name !== form.value.homeTeam)
+  } else if (isKnockoutStage.value && form.value.homeTeam) {
+    const opponent = bracketOpponentOf(form.value.homeTeam)
+    list = props.teams.filter((t) => t.name === opponent)
+  } else if (isKnockoutStage.value) {
+    list = teamsInStage.value.filter((t) => t.name !== form.value.homeTeam)
   } else {
     list = props.teams.filter((t) => t.name !== form.value.homeTeam)
   }
@@ -333,12 +388,19 @@ const availableAwayTeams = computed(() => {
   return list
 })
 
-// Filtra las opciones del local segun el grupo del visitante ya elegido (si aplica)
+// Filtra las opciones del local: en fase de grupos, segun el grupo del visitante
+// ya elegido; en fase eliminatoria, solo el rival real que le toca al visitante
+// según la llave
 const availableHomeTeams = computed(() => {
   let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.awayTeam) {
     const awayGroup = props.teams.find((t) => t.name === form.value.awayTeam)?.group?.toUpperCase()
     list = props.teams.filter((t) => t.group?.toUpperCase() === awayGroup && t.name !== form.value.awayTeam)
+  } else if (isKnockoutStage.value && form.value.awayTeam) {
+    const opponent = bracketOpponentOf(form.value.awayTeam)
+    list = props.teams.filter((t) => t.name === opponent)
+  } else if (isKnockoutStage.value) {
+    list = teamsInStage.value.filter((t) => t.name !== form.value.awayTeam)
   } else {
     list = props.teams.filter((t) => t.name !== form.value.awayTeam)
   }
@@ -415,6 +477,8 @@ const validate = (): boolean => {
 
   if (!form.value.stage) {
     errors.value.stage = 'La fase es obligatoria.'
+  } else if (!availableStages.value.includes(form.value.stage)) {
+    errors.value.stage = 'Esa fase todavía no está habilitada.'
   }
 
   if (!form.value.homeTeam) {
@@ -443,6 +507,23 @@ const validate = (): boolean => {
 
       if (duplicate) {
         errors.value.awayTeam = `Ya existe un partido entre ${form.value.homeTeam} y ${form.value.awayTeam} en fase de grupos.`
+      }
+    }
+  } else if (isKnockoutStage.value) {
+    if (bracketOpponentOf(form.value.homeTeam) !== form.value.awayTeam) {
+      errors.value.awayTeam = `Según la llave, ese no es el rival de ${form.value.homeTeam} en ${form.value.stage}.`
+    } else {
+      const duplicate = props.matches.find((m) => {
+        if (m.id === props.initialData?.id) return false
+        if (m.stage !== form.value.stage) return false
+        return (
+          (m.homeTeam === form.value.homeTeam && m.awayTeam === form.value.awayTeam) ||
+          (m.homeTeam === form.value.awayTeam && m.awayTeam === form.value.homeTeam)
+        )
+      })
+
+      if (duplicate) {
+        errors.value.awayTeam = `Ya existe un partido entre ${form.value.homeTeam} y ${form.value.awayTeam} en ${form.value.stage}.`
       }
     }
   }
@@ -513,6 +594,7 @@ const deriveGroup = (): string => {
 }
 
 const handleSubmit = () => {
+  if (isFinished.value) return
   if (!validate()) return
 
   const { kickoff, group, ...rest } = form.value

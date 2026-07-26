@@ -191,7 +191,7 @@ const computeFirstRoundFixtures = (
   return { stage, fixtures }
 }
 
-interface ProjectedSlot {
+export interface ProjectedSlot {
   homeTeam: string
   awayTeam: string
   match?: Match & { id: string }
@@ -213,7 +213,7 @@ const finishedLoser = (slot: ProjectedSlot): string =>
 // editar libremente al marcar un partido como finalizado, por ejemplo). Así
 // la posición de cada cruce en el cuadro es siempre la misma, sin importar
 // en qué orden se resuelvan los partidos.
-const computeProjectedBracket = (
+export const computeProjectedBracket = (
   standings: Record<string, TeamStanding[]>, allMatches: (Match & { id: string })[]
 ): Record<string, ProjectedSlot[]> => {
   const info = computeFirstRoundFixtures(standings)
@@ -251,6 +251,41 @@ const computeProjectedBracket = (
   }
 
   return slots
+}
+
+// Fases que ya se le pueden asignar a un partido NUEVO en este momento:
+// "Fase de grupos" solo mientras los grupos no hayan terminado (una vez
+// completos, ya no tiene sentido cargar más partidos de grupos a mano), y
+// cada fase eliminatoria solo una vez que la anterior esté completa (mismo
+// criterio que generateNextRound: todos sus cruces proyectados ya existen
+// como partido real y están finalizados). Sirve para que el formulario de
+// partidos no ofrezca fases que todavía no correspondan, ya que esas se
+// generan solas desde la llave. (Un partido de grupos ya existente se puede
+// seguir editando aunque los grupos hayan terminado: el formulario agrega la
+// fase propia del partido a esta lista si hace falta.)
+export const getUnlockedStages = (
+  standings: Record<string, TeamStanding[]>,
+  matches: (Match & { id: string })[]
+): string[] => {
+  const info = computeFirstRoundFixtures(standings)
+  const unlocked = info ? [] : ['Fase de grupos']
+  if (!info) return unlocked
+  unlocked.push(info.stage)
+
+  const projected = computeProjectedBracket(standings, matches)
+  let fromStage = info.stage
+  while (NEXT_STAGE[fromStage]) {
+    const toStage = NEXT_STAGE[fromStage]!
+    const fromSlots = projected[fromStage] || []
+    const roundComplete = fromSlots.length > 0 && fromSlots.every((slot) => slot.match?.status === 'finished')
+    if (!roundComplete) break
+
+    unlocked.push(toStage)
+    if (fromStage === 'Semifinal') unlocked.push('Tercer lugar')
+    fromStage = toStage
+  }
+
+  return unlocked
 }
 
 export const useBracket = () => {
