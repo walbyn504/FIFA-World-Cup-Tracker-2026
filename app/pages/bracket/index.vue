@@ -11,7 +11,7 @@
         <UiRefreshButton :loading="isLoading" @click="loadBracket" />
       </div>
       <p class="mb-8 text-xs text-white/50">
-        Dieciseisavos no aplica en este formato de 32 equipos — el primer cruce eliminatorio es Octavos.
+        Dieciseisavos: los 24 primeros y segundos de grupo, más los 8 mejores terceros.
       </p>
 
       <UiGlassCard v-if="isLoading" class="w-full">
@@ -161,8 +161,8 @@ const gapV = 18
 const connectorW = 36
 const finalWidth = 220
 
-const SIDE_STAGES = ['Octavos', 'Cuartos', 'Semifinal']
-const SIDE_COUNTS = [4, 2, 1]
+const SIDE_STAGES = ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinal']
+const SIDE_COUNTS = [8, 4, 2, 1]
 
 const unit = (round: number) => (cardHeight + gapV) * 2 ** round
 const centerY = (round: number, index: number) => index * unit(round) + unit(round) / 2
