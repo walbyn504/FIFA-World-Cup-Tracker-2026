@@ -381,6 +381,7 @@ const availableAwayTeams = computed(() => {
   } else {
     list = props.teams.filter((t) => t.name !== form.value.homeTeam)
   }
+  list = [...list].sort((a, b) => a.name.localeCompare(b.name))
   if (form.value.awayTeam && !list.some((t) => t.name === form.value.awayTeam)) {
     const current = props.teams.find((t) => t.name === form.value.awayTeam)
     if (current) list = [current, ...list]
@@ -404,6 +405,7 @@ const availableHomeTeams = computed(() => {
   } else {
     list = props.teams.filter((t) => t.name !== form.value.awayTeam)
   }
+  list = [...list].sort((a, b) => a.name.localeCompare(b.name))
   if (form.value.homeTeam && !list.some((t) => t.name === form.value.homeTeam)) {
     const current = props.teams.find((t) => t.name === form.value.homeTeam)
     if (current) list = [current, ...list]
