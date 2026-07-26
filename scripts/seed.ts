@@ -70,8 +70,19 @@ function roundRobin(teams: string[]): [string, string][] {
   return pairs
 }
 
-function deterministicScore(seed: number): number {
-  return seed % 4
+// Marcador reproducible (0-4) a partir de los nombres de los equipos, sin
+// azar real. Depende del texto del enfrentamiento (no de un índice
+// secuencial) para que no se repita cíclicamente entre partidos: con un
+// índice global simple, un grupo de 4 equipos (6 partidos) desfasa el ciclo
+// de módulo 4 en solo 2 por grupo, y esa periodicidad terminaba dándole el
+// mismo marcador (y por lo tanto la misma tabla de posiciones) a demasiados
+// equipos de grupos distintos.
+function deterministicScore(homeTeam: string, awayTeam: string, salt: number): number {
+  let hash = salt
+  for (const char of `${homeTeam}|${awayTeam}`) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 997
+  }
+  return hash % 5
 }
 
 // Reparte las selecciones en grupos de 4, intercalando confederaciones. Se
@@ -200,8 +211,8 @@ async function seedGroupStageMatches() {
         stadium: venue.stadium,
         city: venue.city,
         kickoff: Timestamp.fromDate(kickoff),
-        homeScore: deterministicScore(matchIndex * 7 + 3),
-        awayScore: deterministicScore(matchIndex * 5 + 1),
+        homeScore: deterministicScore(homeTeam, awayTeam, 1),
+        awayScore: deterministicScore(homeTeam, awayTeam, 2),
         status: 'finished'
       })
 
