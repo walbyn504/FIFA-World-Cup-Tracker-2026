@@ -14,7 +14,8 @@
             Selección
             <select
               v-model="form.teamId"
-              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
+              :disabled="teamLocked"
+              class="rounded-xl border bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
               :class="errors.teamId ? 'border-red-400/60' : 'border-white/20'"
             >
               <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Selecciona un equipo</option>
@@ -27,6 +28,9 @@
                 {{ team.name }}
               </option>
             </select>
+            <p v-if="teamLocked" class="text-xs text-white/40">
+              No se puede cambiar: esta selección tiene un partido programado o en vivo, o todavía sigue en competencia.
+            </p>
             <span v-if="errors.teamId" class="text-xs text-red-400">{{ errors.teamId }}</span>
           </label>
 
@@ -128,6 +132,9 @@
 <script setup lang="ts">
 import type { Player } from '~~/shared/types/player'
 import type { Team } from '~~/shared/types/team'
+import type { Match } from '~~/shared/types/match'
+import type { TeamStanding } from '~/composables/useStandings'
+import { isTeamStillInContention } from '~/composables/useBracket'
 import { clubNames } from '~/utils/clubCatalog'
 
 // Define las propiedades que el componente espera recibir
@@ -136,6 +143,8 @@ const props = defineProps<{
   initialData?: (Player & { id?: string }) | null
   teams: (Team & { id: string })[]
   players: (Player & { id: string })[]
+  matches: (Match & { id: string })[]
+  standings: Record<string, TeamStanding[]>
 }>()
 
 // Define los eventos que el componente puede emitir
@@ -159,6 +168,23 @@ const emptyPlayer: Player = {
 // Define el estado del formulario y si se está editando un jugador existente
 const form = ref<Player>({ ...emptyPlayer })
 const isEditing = computed(() => !!props.initialData)
+
+// No se puede reasignar a un jugador de selección si la que ya tiene ahora
+// mismo tiene un partido programado o en vivo, o si todavía sigue en
+// competencia en la llave eliminatoria (no tendría sentido alterar esa
+// plantilla a último momento)
+const teamLocked = computed(() => {
+  if (!isEditing.value || !props.initialData?.teamId) return false
+  const team = props.teams.find((t) => t.id === props.initialData!.teamId)
+  if (!team) return false
+
+  const hasPendingMatch = props.matches.some(
+    (m) => (m.homeTeam === team.name || m.awayTeam === team.name) && m.status !== 'finished'
+  )
+  if (hasPendingMatch) return true
+
+  return isTeamStillInContention(team.name, props.standings, props.matches)
+})
 
 // Guarda los mensajes de error por campo
 const errors = ref<Record<string, string>>({})

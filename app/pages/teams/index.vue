@@ -135,8 +135,9 @@
                   </svg>
               </button>
               <button
-                  title="Eliminar equipo"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50"
+                  :title="blockDeleteReason(team) ?? 'Eliminar equipo'"
+                  :disabled="!!blockDeleteReason(team)"
+                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/35"
                   @click="askDelete(team.id)"
               >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -165,6 +166,7 @@
       :visible="isModalOpen"
       :initial-data="teamBeingEdited"
       :teams="teams"
+      :name-locked="!!teamBeingEdited && !!blockDeleteReason(teamBeingEdited)"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
@@ -181,12 +183,30 @@
 
 <script setup lang="ts">
 import type { Team } from '~~/shared/types/team'
+import type { Player } from '~~/shared/types/player'
+import type { Match } from '~~/shared/types/match'
 
 const { getAllTeams, getTeamsByGroup, createTeam, updateTeam, deleteTeam } = useTeams()
+const { getAllPlayers } = usePlayers()
+const { getAllMatches } = useMatches()
 const { success, error } = useNotify()
 
 const teams = ref<(Team & { id: string })[]>([])
 const groupTeams = ref<(Team & { id: string })[] | null>(null)
+const players = ref<(Player & { id: string })[]>([])
+const matches = ref<(Match & { id: string })[]>([])
+
+// Motivo por el que un equipo no se puede eliminar (FK "manual": jugadores o
+// partidos que lo referencian por nombre), o null si se puede eliminar sin problema
+const blockDeleteReason = (team: Team & { id: string }): string | null => {
+  if (players.value.some((p) => p.teamId === team.id)) {
+    return 'No se puede eliminar: la selección tiene jugadores registrados.'
+  }
+  if (matches.value.some((m) => m.homeTeam === team.name || m.awayTeam === team.name)) {
+    return 'No se puede eliminar: la selección tiene partidos registrados.'
+  }
+  return null
+}
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -250,7 +270,10 @@ const loadTeams = async () => {
   isLoading.value = true
   hasError.value = false
   try {
-    teams.value = await getAllTeams()
+    const [allTeams, allPlayers, allMatches] = await Promise.all([getAllTeams(), getAllPlayers(), getAllMatches()])
+    teams.value = allTeams
+    players.value = allPlayers
+    matches.value = allMatches
     if (selectedGroup.value) {
       await applyGroupFilter(selectedGroup.value)
     }
@@ -290,6 +313,15 @@ const handleSubmit = async (team: Team) => {
 }
 
 const askDelete = (id: string) => {
+  const team = teams.value.find((t) => t.id === id)
+  if (!team) return
+
+  const reason = blockDeleteReason(team)
+  if (reason) {
+    error(reason)
+    return
+  }
+
   teamToDelete.value = id
   isConfirmOpen.value = true
 }
