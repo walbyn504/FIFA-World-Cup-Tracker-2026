@@ -8,15 +8,19 @@
     <div class="relative z-10 mx-auto w-full h-full flex flex-col">
       <!-- Encabezado compacto -->
       <div class="mb-1 flex shrink-0 items-center justify-between gap-3">
-        <h1 class="font-['Bebas_Neue'] text-4xl tracking-wide text-[#F5F0E6]">Llaves eliminatorias</h1>
+        <h1 class="font-['Bebas_Neue'] text-2xl tracking-wide text-[#F5F0E6]">Llaves eliminatorias</h1>
         <UiRefreshButton :loading="isLoading" @click="loadBracket" />
       </div>
 
-      <UiGlassCard v-if="isLoading" class="w-full flex-1 flex items-center justify-center">
+      <UiGlassCard v-if="isLoading" class="mx-auto w-full max-w-6xl">
+        <svg class="h-9 w-9 animate-spin text-[#D4AF37]" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        </svg>
         <p class="text-white/60">Cargando llaves...</p>
       </UiGlassCard>
 
-      <UiGlassCard v-else-if="hasError" class="w-full flex-1 flex flex-col items-center justify-center">
+      <UiGlassCard v-else-if="hasError" class="mx-auto w-full max-w-6xl">
         <p class="text-red-300">No se pudo cargar el bracket.</p>
         <button class="mt-3 rounded-xl bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-[#04140D]" @click="loadBracket">
           Reintentar
@@ -24,13 +28,13 @@
       </UiGlassCard>
 
       <!-- CONTENEDOR CONTRA EL SCROLL -->
-      <div v-else class="flex-1 w-full h-full flex items-center justify-center overflow-hidden">
+      <div ref="treeWrapperRef" v-else class="flex-1 w-full h-full min-h-0 flex items-center justify-center overflow-auto">
         <div
           class="origin-center relative shrink-0 transition-transform duration-200"
-          :style="{ 
-            width: `${totalWidth}px`, 
+          :style="{
+            width: `${totalWidth}px`,
             height: `${treeHeight}px`,
-            transform: `scale(min(calc(96vw / ${totalWidth}), calc(78vh / ${treeHeight})))`
+            transform: `scale(${treeScale})`
           }"
         >
           <!-- CONECTORES SVG CORREGIDOS -->
@@ -54,7 +58,7 @@
           <div
             v-for="node in matchNodes"
             :key="node.key"
-            class="absolute flex flex-col justify-center gap-1 rounded-xl border border-[#D4AF37]/30 bg-[#04140D]/85 px-2.5 py-1.5 shadow-lg backdrop-blur-sm overflow-hidden"
+            class="absolute flex flex-col justify-center gap-1 overflow-hidden rounded-xl border border-white/20 bg-gradient-to-b from-white/20 via-white/10 to-white/5 px-2.5 py-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.45),0_2px_8px_rgba(0,0,0,0.25)] backdrop-blur-xl backdrop-saturate-125"
             :style="{ left: `${node.x}px`, top: `${node.y}px`, width: `${cardWidth}px`, height: `${cardHeight}px` }"
           >
             <span class="absolute -top-3.5 left-1 text-[8px] uppercase tracking-wider text-white/40">{{ node.label }}</span>
@@ -104,8 +108,12 @@
             <!-- Final -->
             <div class="flex flex-col items-center gap-1.5 w-full">
               <h2 class="font-['Bebas_Neue'] text-xl tracking-widest text-[#D4AF37] uppercase">Final</h2>
-              <div class="flex w-full flex-col justify-center gap-1.5 rounded-xl border-2 border-[#D4AF37] bg-[#04140D]/95 px-3 py-2 shadow-2xl">
-                
+              <UiGlassCard
+                class="w-full ring-2 ring-[#D4AF37]"
+                :style="{ borderRadius: '16px' }"
+                content-class="flex flex-col justify-center gap-1.5 px-3 py-2"
+              >
+
                 <!-- Local Final -->
                 <div class="flex items-center justify-between text-xs">
                   <div class="flex items-center gap-2 min-w-0 pr-1">
@@ -134,14 +142,18 @@
                   </span>
                 </div>
 
-              </div>
+              </UiGlassCard>
             </div>
 
             <!-- Tercer lugar -->
             <div class="flex flex-col items-center gap-1.5 w-full">
               <h3 class="text-[10px] uppercase tracking-widest text-white/40">Tercer lugar</h3>
-              <div class="flex w-full flex-col justify-center gap-1.5 rounded-lg border border-white/15 bg-[#04140D]/70 px-3 py-2 text-xs">
-                
+              <UiGlassCard
+                class="w-full"
+                :style="{ borderRadius: '16px' }"
+                content-class="flex flex-col justify-center gap-1.5 px-3 py-2 text-xs"
+              >
+
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2 min-w-0 pr-1">
                     <img v-if="flagOf(thirdNode.homeTeam)" :src="flagOf(thirdNode.homeTeam)" class="h-3 w-4 shrink-0 rounded-sm object-cover" :alt="thirdNode.homeTeam || ''">
@@ -168,7 +180,7 @@
                   </span>
                 </div>
 
-              </div>
+              </UiGlassCard>
             </div>
           </div>
 
@@ -179,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { Match } from '~~/shared/types/match'
 
 interface SlotMatch {
@@ -231,6 +243,25 @@ const rightInnerX = computed(() => finalX.value + finalWidth + connectorW)
 const xRight = (round: number) => rightInnerX.value + (SIDE_STAGES.length - 1 - round) * (cardWidth + connectorW)
 
 const totalWidth = computed(() => xRight(0) + cardWidth)
+
+// Factor de escala para que todo el árbol entre en el espacio disponible.
+// Antes esto se adivinaba como un porcentaje de la ventana completa
+// (window.innerHeight * 0.7), pero eso no tiene en cuenta cuánto espacio le
+// queda de verdad al árbol después del encabezado, el padding, ni cosas como
+// la barra de tareas tapando parte de la ventana. Ahora se mide el tamaño
+// real del contenedor con ResizeObserver, así el cálculo siempre es exacto
+// sin importar qué le esté quitando espacio alrededor.
+const treeWrapperRef = ref<HTMLElement | null>(null)
+const availableWidth = ref(0)
+const availableHeight = ref(0)
+let resizeObserver: ResizeObserver | null = null
+
+const treeScale = computed(() => {
+  if (!availableWidth.value || !availableHeight.value) return 1
+  const scaleByWidth = (availableWidth.value * 0.97) / totalWidth.value
+  const scaleByHeight = (availableHeight.value * 0.97) / treeHeight.value
+  return Math.min(scaleByWidth, scaleByHeight, 1)
+})
 
 // Posicionamiento balanceado del bloque de la copa
 const finalNodeTop = computed(() => {
@@ -364,5 +395,25 @@ const loadBracket = async () => {
   }
 }
 
+// El wrapper solo existe en el DOM una vez que termina de cargar (v-else),
+// así que se observa recién cuando la ref deja de ser null
+watch(treeWrapperRef, (el) => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  if (!el) return
+
+  resizeObserver = new ResizeObserver((entries) => {
+    const entry = entries[0]
+    if (!entry) return
+    availableWidth.value = entry.contentRect.width
+    availableHeight.value = entry.contentRect.height
+  })
+  resizeObserver.observe(el)
+})
+
 onMounted(loadBracket)
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+})
 </script>
