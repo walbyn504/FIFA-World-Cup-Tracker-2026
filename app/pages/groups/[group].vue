@@ -59,6 +59,8 @@
               <th class="px-3 py-4 text-center">G</th>
               <th class="px-3 py-4 text-center">E</th>
               <th class="px-3 py-4 text-center">P</th>
+              <th class="px-3 py-4 text-center">GF</th>
+              <th class="px-3 py-4 text-center">GC</th>
               <th class="px-3 py-4 text-center">DG</th>
               <th class="px-5 py-4 text-center">Pts</th>
             </tr>
@@ -78,6 +80,8 @@
               <td class="px-3 py-4 text-center">{{ team.won }}</td>
               <td class="px-3 py-4 text-center">{{ team.drawn }}</td>
               <td class="px-3 py-4 text-center">{{ team.lost }}</td>
+              <td class="px-3 py-4 text-center">{{ team.goalsFor }}</td>
+              <td class="px-3 py-4 text-center">{{ team.goalsAgainst }}</td>
               <td class="px-3 py-4 text-center">{{ team.goalDifference }}</td>
               <td class="px-5 py-4 text-center font-semibold text-[#D4AF37]">{{ team.points }}</td>
             </tr>
