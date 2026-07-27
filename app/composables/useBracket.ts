@@ -253,6 +253,13 @@ export const computeProjectedBracket = (
   return slots
 }
 
+// Cantidad de selecciones que ya clasificaron a la fase eliminatoria (una vez
+// que la fase de grupos termina del todo). 0 mientras los grupos no cierren.
+export const getQualifiedTeamsCount = (standings: Record<string, TeamStanding[]>): number => {
+  const info = computeFirstRoundFixtures(standings)
+  return info ? info.fixtures.flat().length : 0
+}
+
 // Fases que ya se le pueden asignar a un partido NUEVO en este momento:
 // "Fase de grupos" solo mientras los grupos no hayan terminado (una vez
 // completos, ya no tiene sentido cargar más partidos de grupos a mano), y

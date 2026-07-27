@@ -60,7 +60,8 @@ const navLinks = [
   { to: '/matches', label: 'Partidos' },
   { to: '/groups', label: 'Grupos' },
   { to: '/bracket', label: 'Llaves' },
-  { to: '/predictions', label: 'Predicciones' }
+  { to: '/predictions', label: 'Predicciones' },
+  { to: '/statistics', label: 'Estadísticas' }
 ]
 
 const handleLogout = async () => {
