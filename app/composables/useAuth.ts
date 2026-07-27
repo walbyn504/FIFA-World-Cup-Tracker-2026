@@ -31,7 +31,8 @@ export const useAuth = () => {
           uid: firebaseUser.uid,
           name: firebaseUser.displayName ?? '',
           email: firebaseUser.email ?? '',
-          favoriteTeam: '',
+          favoriteTeams: [],
+          favoriteMatches: [],
           points: 0
         }
         await setDoc(userRef, newUser)
@@ -57,7 +58,7 @@ export const useAuth = () => {
   }
 
   // Actualiza los datos editables del perfil del usuario autenticado
-  const updateProfile = async (changes: Partial<Pick<User, 'name' | 'favoriteTeam'>>) => {
+  const updateProfile = async (changes: Partial<Pick<User, 'name'>>) => {
     if (!authStore.user) return
 
     try {
