@@ -100,5 +100,57 @@ export const useStandings = () => {
     }
     }
 
-  return { getGroupStandings }
+  // Estadísticas por selección considerando TODOS los partidos finalizados,
+  // sin importar la fase (a diferencia de getGroupStandings, que solo mira fase de grupos).
+  const getOverallTeamStats = async (): Promise<TeamStanding[]> => {
+    try {
+      const [teams, matches] = await Promise.all([
+        getAll<Team>('teams'),
+        getAll<Match>('matches')
+      ])
+
+      const standingsByTeamName = new Map<string, TeamStanding>()
+      for (const team of teams) {
+        standingsByTeamName.set(team.name, emptyStanding(team))
+      }
+
+      const finishedMatches = matches.filter((match) => match.status === 'finished')
+
+      for (const match of finishedMatches) {
+        const home = standingsByTeamName.get(match.homeTeam)
+        const away = standingsByTeamName.get(match.awayTeam)
+        if (!home || !away) continue
+
+        home.played++
+        away.played++
+        home.goalsFor += match.homeScore
+        home.goalsAgainst += match.awayScore
+        away.goalsFor += match.awayScore
+        away.goalsAgainst += match.homeScore
+
+        if (match.homeScore > match.awayScore) {
+          home.won++
+          away.lost++
+        } else if (match.homeScore < match.awayScore) {
+          away.won++
+          home.lost++
+        } else {
+          home.drawn++
+          away.drawn++
+        }
+      }
+
+      const standings = Array.from(standingsByTeamName.values())
+      for (const standing of standings) {
+        standing.goalDifference = standing.goalsFor - standing.goalsAgainst
+      }
+
+      return standings
+    } catch (error) {
+      console.error('Error al calcular las estadísticas generales:', error)
+      throw error
+    }
+  }
+
+  return { getGroupStandings, getOverallTeamStats }
 }
