@@ -58,7 +58,8 @@ export const useAuth = () => {
   }
 
   // Actualiza los datos editables del perfil del usuario autenticado
-  const updateProfile = async (changes: Partial<Pick<User, 'name'>>) => {
+  // ('points' se recalcula desde las predicciones, no lo edita el usuario a mano)
+  const updateProfile = async (changes: Partial<Pick<User, 'name' | 'favoriteTeam' | 'points'>>) => {
     if (!authStore.user) return
 
     try {
