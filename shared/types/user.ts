@@ -2,6 +2,7 @@ export interface User {
   uid: string
   name: string
   email: string
-  favoriteTeam: string
+  favoriteTeams: string[]
+  favoriteMatches: string[]
   points: number
 }

@@ -20,29 +20,6 @@
             <span v-if="errors.name" class="text-xs text-red-400">{{ errors.name }}</span>
           </label>
 
-          <label class="flex flex-col gap-1.5 text-sm text-white/70">
-            Equipo favorito
-            <select
-              v-model="form.favoriteTeam"
-              :disabled="isLoadingTeams"
-              class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-              :class="errors.favoriteTeam ? 'border-red-400/60' : 'border-white/20'"
-            >
-              <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">
-                {{ isLoadingTeams ? 'Cargando selecciones...' : 'Sin equipo favorito' }}
-              </option>
-              <option
-                v-for="t in teams"
-                :key="t.id"
-                :value="t.name"
-                class="bg-[#0F1F17] text-[#F5F0E6]"
-              >
-                {{ t.name }}
-              </option>
-            </select>
-            <span v-if="errors.favoriteTeam" class="text-xs text-red-400">{{ errors.favoriteTeam }}</span>
-          </label>
-
           <div class="mt-2 flex justify-end gap-3">
             <button
               type="button"
@@ -65,49 +42,29 @@
 </template>
 
 <script setup lang="ts">
-import type { Team } from '~~/shared/types/team'
 import type { User } from '~~/shared/types/user'
 
 const props = defineProps<{
   visible: boolean
-  initialData: Pick<User, 'name' | 'favoriteTeam'>
+  initialData: Pick<User, 'name'>
 }>()
 
 const emit = defineEmits<{
   close: []
-  submit: [changes: Pick<User, 'name' | 'favoriteTeam'>]
+  submit: [changes: Pick<User, 'name'>]
 }>()
 
-const { getAllTeams } = useTeams()
-const { error } = useNotify()
-
-// Selecciones registradas en el tracker, para elegir el equipo favorito entre ellas
-const teams = ref<(Team & { id: string })[]>([])
-const isLoadingTeams = ref(false)
-
-const loadTeams = async () => {
-  isLoadingTeams.value = true
-  try {
-    teams.value = await getAllTeams()
-  } catch (err) {
-    error('No se pudieron cargar las selecciones.')
-  } finally {
-    isLoadingTeams.value = false
-  }
-}
-
-const form = ref<Pick<User, 'name' | 'favoriteTeam'>>({ ...props.initialData })
+const form = ref<Pick<User, 'name'>>({ ...props.initialData })
 
 const errors = ref<Record<string, string>>({})
 
-// Recarga el formulario y las selecciones disponibles cada vez que se abre el modal
+// Recarga el formulario cada vez que se abre el modal
 watch(
   () => props.visible,
   (isVisible) => {
     if (isVisible) {
       form.value = { ...props.initialData }
       errors.value = {}
-      loadTeams()
     }
   }
 )

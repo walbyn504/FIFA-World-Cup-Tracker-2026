@@ -99,9 +99,17 @@
         <li v-for="team in paginatedTeams" :key="team.id">
           <UiGlassCard
             class="w-full"
-            content-class="flex items-center justify-between gap-4 px-5 py-4 text-left"
+            content-class="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-4 text-left"
           >
-            <div class="flex items-center gap-3">
+            <!-- Columna Izquierda: Botón Favorito -->
+            <div class="flex items-center justify-start">
+              <UiFavoriteButton
+                :is-favorite="isFavoriteTeam(team.id)"
+                @click="toggleFavoriteTeam(team.id)"
+              />
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-white/60">
               <img
                 v-if="team.flag"
                 :src="team.flag"
@@ -113,40 +121,42 @@
                 <span class="ml-2 text-sm text-white/60">Grupo {{ team.group }}</span>
               </div>
             </div>
+
+            <!-- Columna Derecha: Acciones (Ver, Editar, Eliminar) -->
             <div class="flex shrink-0 gap-2">
               <NuxtLink
-                  :to="`/teams/${team.id}`"
-                  title="Ver equipo"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/25 text-white transition hover:bg-white/35"
+                :to="`/teams/${team.id}`"
+                title="Ver equipo"
+                class="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/25 text-white transition hover:bg-white/35"
               >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
               </NuxtLink>
               <button
-                  title="Editar equipo"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-[#D4AF37] bg-[#D4AF37]/35 text-[#D4AF37] transition hover:bg-[#D4AF37]/50"
-                  @click="openEditModal(team)"
+                title="Editar equipo"
+                class="flex h-9 w-9 items-center justify-center rounded-full border border-[#D4AF37] bg-[#D4AF37]/35 text-[#D4AF37] transition hover:bg-[#D4AF37]/50"
+                @click="openEditModal(team)"
               >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                  </svg>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
               </button>
               <button
-                  :title="blockDeleteReason(team) ?? 'Eliminar equipo'"
-                  :disabled="!!blockDeleteReason(team)"
-                  class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/35"
-                  @click="askDelete(team.id)"
+                :title="blockDeleteReason(team) ?? 'Eliminar equipo'"
+                :disabled="!!blockDeleteReason(team)"
+                class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/35"
+                @click="askDelete(team.id)"
               >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                  </svg>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                </svg>
               </button>
             </div>
           </UiGlassCard>
@@ -189,6 +199,7 @@ import type { Match } from '~~/shared/types/match'
 const { getAllTeams, getTeamsByGroup, createTeam, updateTeam, deleteTeam } = useTeams()
 const { getAllPlayers } = usePlayers()
 const { getAllMatches } = useMatches()
+const { isFavoriteTeam, toggleFavoriteTeam } = useFavorites()
 const { success, error } = useNotify()
 
 const teams = ref<(Team & { id: string })[]>([])
@@ -207,6 +218,7 @@ const blockDeleteReason = (team: Team & { id: string }): string | null => {
   }
   return null
 }
+
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -262,8 +274,8 @@ const paginatedTeams = computed(() => {
   return filteredTeams.value.slice(start, start + itemsPerPage)
 })
 
-// Guarda el equipo que se esta editando (con su id).
-// Si es null, el modal esta en modo "crear"
+// Guarda el equipo que se está editando (con su id).
+// Si es null, el modal está en modo "crear"
 const teamBeingEdited = ref<(Team & { id: string }) | null>(null)
 
 const loadTeams = async () => {

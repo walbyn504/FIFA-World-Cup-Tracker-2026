@@ -24,22 +24,26 @@
         <p class="text-sm text-white/70">{{ authStore.user.email }}</p>
       </div>
 
-      <div class="grid w-full grid-cols-2 gap-3">
-        <div class="rounded-2xl border border-white/20 bg-white/5 px-4 py-3">
-          <p class="text-xs uppercase tracking-wide text-white/60">Puntos</p>
-          <p class="text-xl font-bold text-yellow-300">{{ authStore.user.points }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/20 bg-white/5 px-4 py-3">
-          <p class="text-xs uppercase tracking-wide text-white/60">Equipo favorito</p>
-          <p class="text-xl font-bold text-white">{{ authStore.user.favoriteTeam || '—' }}</p>
-        </div>
+      <div class="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3">
+        <p class="text-xs uppercase tracking-wide text-white/60">Puntos</p>
+        <p class="text-xl font-bold text-yellow-300">{{ authStore.user.points }}</p>
       </div>
+
+      <NuxtLink
+        to="/profile/favorites"
+        class="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4AF37] bg-[#D4AF37]/20 px-4 py-2.5 text-sm font-semibold text-[#D4AF37] transition hover:bg-[#D4AF37]/30"
+      >
+        <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+        Mis Favoritos
+      </NuxtLink>
     </UiGlassCard>
 
     <ProfileFormModal
       v-if="authStore.user"
       :visible="isModalOpen"
-      :initial-data="{ name: authStore.user.name, favoriteTeam: authStore.user.favoriteTeam }"
+      :initial-data="{ name: authStore.user.name }"
       @close="isModalOpen = false"
       @submit="handleSubmit"
     />
@@ -59,7 +63,7 @@ const { success, error } = useNotify()
 
 const isModalOpen = ref(false)
 
-const handleSubmit = async (changes: Pick<User, 'name' | 'favoriteTeam'>) => {
+const handleSubmit = async (changes: Pick<User, 'name'>) => {
   try {
     await updateProfile(changes)
     isModalOpen.value = false

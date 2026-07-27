@@ -153,31 +153,41 @@
       <ul v-else class="flex flex-col gap-3">
         <li v-for="match in paginatedMatches" :key="match.id">
           <UiGlassCard class="w-full" content-class="flex items-center justify-between gap-4 px-5 py-4 text-left">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 text-xs text-white/60">
-                <span>{{ match.stage }}</span>
-                <span v-if="match.group">· Grupo {{ match.group }}</span>
-                <span>· {{ formatKickoff(match.kickoff) }}</span>
+            <!-- Bloque izquierdo: Botón de favorito + Info del partido -->
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <UiFavoriteButton
+                :is-favorite="isFavoriteMatch(match.id)"
+                @click="toggleFavoriteMatch(match.id)"
+              />
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 text-xs text-white/60">
+                  <span>{{ match.stage }}</span>
+                  <span v-if="match.group">· Grupo {{ match.group }}</span>
+                  <span>· {{ formatKickoff(match.kickoff) }}</span>
+                </div>
+                <div class="mt-1 flex items-center gap-2 text-lg text-white">
+                  <img
+                    v-if="teamFlag(match.homeTeam)"
+                    :src="teamFlag(match.homeTeam)"
+                    :alt="`Bandera de ${match.homeTeam}`"
+                    class="h-5 w-7 shrink-0 rounded object-cover border border-white/20"
+                  >
+                  <strong class="truncate">{{ match.homeTeam }}</strong>
+                  <span class="shrink-0 font-bold text-yellow-300">{{ match.homeScore }} - {{ match.awayScore }}</span>
+                  <strong class="truncate">{{ match.awayTeam }}</strong>
+                  <img
+                    v-if="teamFlag(match.awayTeam)"
+                    :src="teamFlag(match.awayTeam)"
+                    :alt="`Bandera de ${match.awayTeam}`"
+                    class="h-5 w-7 shrink-0 rounded object-cover border border-white/20"
+                  >
+                </div>
+                <div class="mt-1 text-sm text-white/60">{{ match.stadium }} · {{ match.city }}</div>
               </div>
-              <div class="mt-1 flex items-center gap-2 text-lg text-white">
-                <img
-                  v-if="teamFlag(match.homeTeam)"
-                  :src="teamFlag(match.homeTeam)"
-                  :alt="`Bandera de ${match.homeTeam}`"
-                  class="h-5 w-7 shrink-0 rounded object-cover border border-white/20"
-                >
-                <strong class="truncate">{{ match.homeTeam }}</strong>
-                <span class="shrink-0 font-bold text-yellow-300">{{ match.homeScore }} - {{ match.awayScore }}</span>
-                <strong class="truncate">{{ match.awayTeam }}</strong>
-                <img
-                  v-if="teamFlag(match.awayTeam)"
-                  :src="teamFlag(match.awayTeam)"
-                  :alt="`Bandera de ${match.awayTeam}`"
-                  class="h-5 w-7 shrink-0 rounded object-cover border border-white/20"
-                >
-              </div>
-              <div class="mt-1 text-sm text-white/60">{{ match.stadium }} · {{ match.city }}</div>
             </div>
+
+            <!-- Bloque derecho: Estado + Acciones -->
             <div class="flex shrink-0 flex-col items-end gap-2">
               <span
                 class="rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -271,6 +281,7 @@ const { getAllTeams } = useTeams()
 const { getAllPlayers } = usePlayers()
 const { generateBracket } = useBracket()
 const { getGroupStandings } = useStandings()
+const { toggleFavoriteMatch, isFavoriteMatch } = useFavorites()
 const { success, error } = useNotify()
 
 const matches = ref<(Match & { id: string })[]>([])
@@ -279,15 +290,9 @@ const teams = ref<(Team & { id: string })[]>([])
 const players = ref<(Player & { id: string })[]>([])
 const standings = ref<Record<string, TeamStanding[]>>({})
 
-// Fases que ya se le pueden asignar a un partido: fase de grupos siempre, y
-// cada fase eliminatoria solo una vez que la anterior esté completa (el resto
-// se genera solo desde la llave)
 const unlockedStages = computed(() => getUnlockedStages(standings.value, matches.value))
-
-// Cruces reales de cada fase eliminatoria (quién enfrenta a quién según la
-// llave), para que el formulario solo deje elegir rivales que de verdad se
-// enfrentan en esa fase
 const projectedBracket = computed(() => computeProjectedBracket(standings.value, matches.value))
+
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -301,14 +306,9 @@ const selectedGroup = ref('')
 const selectedStatus = ref<MatchStatus | ''>('')
 const selectedDate = ref('')
 
-// Guarda el partido que se esta editando (con su id).
-// Si es null, el modal esta en modo "crear"
 const matchBeingEdited = ref<(Match & { id: string }) | null>(null)
 
-// Grupos distintos presentes en los equipos registrados, para el filtro de grupo
 const availableGroups = computed(() => [...new Set(teams.value.map((t) => t.group))].sort())
-
-// Selecciones ordenadas alfabéticamente, para el filtro de selección
 const sortedTeams = computed(() => [...teams.value].sort((a, b) => a.name.localeCompare(b.name)))
 
 const teamFlag = (teamName: string) => teams.value.find((t) => t.name === teamName)?.flag ?? ''
@@ -322,8 +322,6 @@ const statusBadgeClass = (status: MatchStatus) => ({
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
-// Consulta a Firestore (where 'group' o where 'stage', según lo que haya elegido el usuario)
-// para traer los partidos de ese grupo o esa fase
 const applyQueryFilter = async () => {
   if (!selectedGroup.value && !selectedStage.value) {
     queriedMatches.value = null
@@ -342,14 +340,12 @@ const applyQueryFilter = async () => {
   }
 }
 
-// El grupo solo aplica a la fase de grupos: si se cambia de fase se limpia el grupo elegido
 watch(selectedStage, (stage) => {
   if (stage !== 'Fase de grupos') selectedGroup.value = ''
 })
 
 watch([selectedStage, selectedGroup], applyQueryFilter)
 
-// Aplica estado, fecha y buscador sobre la fase/grupo elegido (o sobre todos los partidos)
 const filteredMatches = computed(() => {
   let result = (selectedStage.value || selectedGroup.value) ? (queriedMatches.value ?? []) : matches.value
 
@@ -379,7 +375,6 @@ const filteredMatches = computed(() => {
     )
   }
 
-  // En vivo primero, luego programados (más próximo primero), luego finalizados (más reciente primero)
   const statusOrder: Record<MatchStatus, number> = { live: 0, scheduled: 1, finished: 2 }
   return [...result].sort((a, b) => {
     const statusDiff = statusOrder[a.status] - statusOrder[b.status]
@@ -393,7 +388,6 @@ const filteredMatches = computed(() => {
 const itemsPerPage = 3
 const currentPage = ref(1)
 
-// Vuelve a la primera página cada vez que cambia el resultado filtrado
 watch(filteredMatches, () => {
   currentPage.value = 1
 })
@@ -435,7 +429,6 @@ const openEditModal = (match: Match & { id: string }) => {
   isModalOpen.value = true
 }
 
-// Decide si el submit del modal significa crear o actualizar
 const handleSubmit = async (match: Match) => {
   const isEditing = !!matchBeingEdited.value
   try {
@@ -448,9 +441,6 @@ const handleSubmit = async (match: Match) => {
     await loadMatches()
     success(isEditing ? 'Partido actualizado correctamente.' : 'Partido creado correctamente.')
 
-    // Si el partido quedó finalizado, puede haber dejado lista la siguiente ronda
-    // de la llave eliminatoria (o la fase de grupos completa): se revisa al toque,
-    // sin depender de que alguien entre a /bracket.
     if (match.status === 'finished') {
       const messages = await generateBracket()
       const relevant = messages.filter((m) => m && !m.includes('ya estaba generado'))
