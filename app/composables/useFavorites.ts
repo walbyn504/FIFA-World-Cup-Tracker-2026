@@ -80,11 +80,16 @@ export const useFavorites = () => {
     return authStore.user.favoriteMatches.includes(matchId)
   }
 
+  const favoriteTeamIds = computed(() => authStore.user?.favoriteTeams ?? [])
+  const favoriteMatchIds = computed(() => authStore.user?.favoriteMatches ?? [])
+
   return {
     getFavorites,
     toggleFavoriteTeam,
     toggleFavoriteMatch,
     isFavoriteTeam,
-    isFavoriteMatch
+    isFavoriteMatch,
+    favoriteTeamIds,
+    favoriteMatchIds
   }
 }
