@@ -38,6 +38,17 @@
         </svg>
         Mis Favoritos
       </NuxtLink>
+
+      <NuxtLink
+        to="/profile/predictions"
+        class="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+      >
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+        Mis Predicciones
+      </NuxtLink>
     </UiGlassCard>
 
     <ProfileFormModal
