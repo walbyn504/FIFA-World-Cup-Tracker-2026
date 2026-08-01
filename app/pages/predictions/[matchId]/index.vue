@@ -135,6 +135,7 @@
                   v-model.number="form.homePrediction"
                   type="number"
                   min="0"
+                  :max="MAX_GOALS"
                   class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
                   :class="errors.homePrediction ? 'border-red-400/60' : 'border-white/20'"
                 >
@@ -147,6 +148,7 @@
                   v-model.number="form.awayPrediction"
                   type="number"
                   min="0"
+                  :max="MAX_GOALS"
                   class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
                   :class="errors.awayPrediction ? 'border-red-400/60' : 'border-white/20'"
                 >
@@ -205,7 +207,7 @@ import type { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Prediction } from '~~/shared/types/prediction'
-import { matchStatusLabels } from '~/utils/matchOptions'
+import { matchStatusLabels, MAX_GOALS } from '~/utils/matchOptions'
 
 definePageMeta({
   middleware: 'auth'
@@ -265,10 +267,14 @@ const validate = (): boolean => {
 
   if (form.value.homePrediction == null || form.value.homePrediction < 0) {
     errors.value.homePrediction = 'Ingresá un número válido.'
+  } else if (form.value.homePrediction > MAX_GOALS) {
+    errors.value.homePrediction = `Los goles no pueden ser más de ${MAX_GOALS}.`
   }
 
   if (form.value.awayPrediction == null || form.value.awayPrediction < 0) {
     errors.value.awayPrediction = 'Ingresá un número válido.'
+  } else if (form.value.awayPrediction > MAX_GOALS) {
+    errors.value.awayPrediction = `Los goles no pueden ser más de ${MAX_GOALS}.`
   }
 
   return Object.keys(errors.value).length === 0

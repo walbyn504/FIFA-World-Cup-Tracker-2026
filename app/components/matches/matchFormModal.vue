@@ -173,6 +173,7 @@
                 v-model.number="form.homeScore"
                 type="number"
                 min="0"
+                :max="MAX_GOALS"
                 :disabled="isFinished"
                 class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
                 :class="errors.homeScore ? 'border-red-400/60' : 'border-white/20'"
@@ -186,6 +187,7 @@
                 v-model.number="form.awayScore"
                 type="number"
                 min="0"
+                :max="MAX_GOALS"
                 :disabled="isFinished"
                 class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
                 :class="errors.awayScore ? 'border-red-400/60' : 'border-white/20'"
@@ -222,7 +224,7 @@ import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
 import type { ProjectedSlot } from '~/composables/useBracket'
-import { matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
+import { matchStatuses, matchStatusLabels, MAX_GOALS } from '~/utils/matchOptions'
 import { matchVenues } from '~/utils/matchVenues'
 
 // Cantidad mínima de jugadores en plantilla para poder disputar un partido
@@ -566,10 +568,14 @@ const validate = (): boolean => {
   if (form.value.status !== 'scheduled') {
     if (form.value.homeScore == null || form.value.homeScore < 0) {
       errors.value.homeScore = 'Los goles no pueden ser negativos.'
+    } else if (form.value.homeScore > MAX_GOALS) {
+      errors.value.homeScore = `Los goles no pueden ser más de ${MAX_GOALS}.`
     }
 
     if (form.value.awayScore == null || form.value.awayScore < 0) {
       errors.value.awayScore = 'Los goles no pueden ser negativos.'
+    } else if (form.value.awayScore > MAX_GOALS) {
+      errors.value.awayScore = `Los goles no pueden ser más de ${MAX_GOALS}.`
     }
 
     if (!form.value.awayTeam) {
