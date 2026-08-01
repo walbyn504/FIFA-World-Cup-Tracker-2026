@@ -31,7 +31,7 @@
 
       <NuxtLink
         to="/profile/favorites"
-        class="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D4AF37] bg-[#D4AF37]/20 px-4 py-2.5 text-sm font-semibold text-[#D4AF37] transition hover:bg-[#D4AF37]/30"
+        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#F3D77A] to-[#D4AF37] px-4 py-2.5 text-sm font-bold text-[#04140D] shadow-[0_6px_16px_-4px_rgba(212,175,55,0.55)] transition hover:brightness-110"
       >
         <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24">
           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -41,7 +41,7 @@
 
       <NuxtLink
         to="/profile/predictions"
-        class="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-950 px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_16px_-4px_rgba(4,120,87,0.55)] transition hover:brightness-110"
       >
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 11l3 3L22 4" />

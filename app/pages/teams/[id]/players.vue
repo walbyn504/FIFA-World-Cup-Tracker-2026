@@ -82,7 +82,7 @@
         <div v-if="substitutes.length > 0" class="order-2 lg:order-1 lg:w-72 lg:shrink-0">
           <h2 class="mb-3 font-['Bebas_Neue'] text-xl tracking-wide text-white/80">Suplentes</h2>
           <ul class="flex flex-col gap-1.5">
-            <li v-for="player in substitutes" :key="player.id">
+            <li v-for="player in paginatedSubstitutes" :key="player.id">
               <UiGlassCard class="w-full" content-class="flex items-center gap-2 px-3 py-2">
                 <UiJerseyBadge :number="player.number" class="h-7 w-7 shrink-0" />
                 <div class="min-w-0 flex-1">
@@ -103,6 +103,13 @@
               </UiGlassCard>
             </li>
           </ul>
+
+          <UiPagination
+            v-model="substitutesPage"
+            :total-items="substitutes.length"
+            :items-per-page="substitutesPerPage"
+            class="mt-3"
+          />
         </div>
 
         <div class="pitch order-1 min-w-0 flex-1 lg:order-2">
@@ -163,6 +170,19 @@ const positionOrder = ['Delantero', 'Mediocampista', 'Defensa', 'Portero']
 const starters = computed(() => players.value.filter((p) => p.isStarter))
 const substitutes = computed(() => players.value.filter((p) => !p.isStarter))
 const hasStartingGoalkeeper = computed(() => starters.value.some((p) => p.position === 'Portero'))
+
+const substitutesPerPage = 5
+const substitutesPage = ref(1)
+
+// Vuelve a la primera página cada vez que cambia la lista de suplentes
+watch(substitutes, () => {
+  substitutesPage.value = 1
+})
+
+const paginatedSubstitutes = computed(() => {
+  const start = (substitutesPage.value - 1) * substitutesPerPage
+  return substitutes.value.slice(start, start + substitutesPerPage)
+})
 
 const formationRows = computed(() =>
   positionOrder
