@@ -217,8 +217,8 @@
                   </svg>
                 </button>
                 <button
-                  :title="match.status === 'finished' ? 'Un partido finalizado no se puede eliminar' : 'Eliminar partido'"
-                  :disabled="match.status === 'finished'"
+                  :title="deleteBlockReason(match) || 'Eliminar partido'"
+                  :disabled="!!deleteBlockReason(match)"
                   class="flex h-9 w-9 items-center justify-center rounded-full border border-red-500 bg-red-500/35 text-red-300 transition hover:bg-red-500/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-500/35"
                   @click="askDelete(match.id)"
                 >
@@ -279,7 +279,7 @@ import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOpti
 const { getAllMatches, getMatchesByStage, getMatchesByGroup, createMatch, updateMatch, deleteMatch } = useMatches()
 const { getAllTeams } = useTeams()
 const { getAllPlayers } = usePlayers()
-const { generateBracket } = useBracket()
+const { generateBracket, bracketStages } = useBracket()
 const { getGroupStandings } = useStandings()
 const { toggleFavoriteMatch, isFavoriteMatch } = useFavorites()
 const { success, error } = useNotify()
@@ -451,9 +451,16 @@ const handleSubmit = async (match: Match) => {
   }
 }
 
+// Restricciones para eliminar un partido
+const deleteBlockReason = (match: Match & { id: string }): string => {
+  if (match.status === 'finished') return 'Un partido finalizado no se puede eliminar'
+  if (bracketStages.includes(match.stage)) return 'Un cruce de eliminatoria no se puede eliminar, solo editar'
+  return ''
+}
+
 const askDelete = (id: string) => {
   const match = matches.value.find((m) => m.id === id)
-  if (match?.status === 'finished') return
+  if (!match || deleteBlockReason(match)) return
 
   matchToDelete.value = id
   isConfirmOpen.value = true

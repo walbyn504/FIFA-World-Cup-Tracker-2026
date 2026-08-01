@@ -173,9 +173,10 @@
                 v-model.number="form.homeScore"
                 type="number"
                 min="0"
+                :max="MAX_GOALS"
                 :disabled="isFinished"
                 class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-                :class="errors.homeScore ? 'border-red-400/60' : 'border-white/20'"
+                :class="errors.homeScore || errors.draw ? 'border-red-400/60' : 'border-white/20'"
               >
               <span v-if="errors.homeScore" class="text-xs text-red-400">{{ errors.homeScore }}</span>
             </label>
@@ -186,12 +187,15 @@
                 v-model.number="form.awayScore"
                 type="number"
                 min="0"
+                :max="MAX_GOALS"
                 :disabled="isFinished"
                 class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-                :class="errors.awayScore ? 'border-red-400/60' : 'border-white/20'"
+                :class="errors.awayScore || errors.draw ? 'border-red-400/60' : 'border-white/20'"
               >
               <span v-if="errors.awayScore" class="text-xs text-red-400">{{ errors.awayScore }}</span>
             </label>
+
+            <p v-if="errors.draw" class="col-span-2 text-center text-xs text-red-400">{{ errors.draw }}</p>
           </div>
 
           <div class="mt-2 flex justify-end gap-3">
@@ -222,7 +226,7 @@ import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
 import type { ProjectedSlot } from '~/composables/useBracket'
-import { matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
+import { matchStatuses, matchStatusLabels, MAX_GOALS } from '~/utils/matchOptions'
 import { matchVenues } from '~/utils/matchVenues'
 
 // Cantidad mínima de jugadores en plantilla para poder disputar un partido
@@ -472,8 +476,14 @@ const squadSize = (teamName: string): number => {
   return props.players.filter((p) => p.teamId === teamId).length
 }
 
-// Revisa cada campo y llena `errors` si algo no es válido.
-// Devuelve true si el formulario está listo para enviarse.
+// Valida que la cantidad de goles sea un número entero no negativo y no mayor al máximo permitido
+const validateGoalCount = (value: unknown): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Ingresá una cantidad de goles.'
+  if (value < 0) return 'Los goles no pueden ser negativos.'
+  if (value > MAX_GOALS) return `Los goles no pueden ser más de ${MAX_GOALS}.`
+  return ''
+}
+
 const validate = (): boolean => {
   errors.value = {}
 
@@ -564,12 +574,20 @@ const validate = (): boolean => {
   }
 
   if (form.value.status !== 'scheduled') {
-    if (form.value.homeScore == null || form.value.homeScore < 0) {
-      errors.value.homeScore = 'Los goles no pueden ser negativos.'
-    }
+    const homeScoreError = validateGoalCount(form.value.homeScore)
+    if (homeScoreError) errors.value.homeScore = homeScoreError
 
-    if (form.value.awayScore == null || form.value.awayScore < 0) {
-      errors.value.awayScore = 'Los goles no pueden ser negativos.'
+    const awayScoreError = validateGoalCount(form.value.awayScore)
+    if (awayScoreError) errors.value.awayScore = awayScoreError
+
+    // En eliminación directa (Dieciseisavos en adelante) siempre tiene que haber un
+    // ganador, pero solo una vez que el partido termina: mientras está "En vivo"
+    // el marcador puede estar empatado en cualquier momento del partido.
+    if (
+      !homeScoreError && !awayScoreError && isKnockoutStage.value &&
+      form.value.status === 'finished' && form.value.homeScore === form.value.awayScore
+    ) {
+      errors.value.draw = 'En fase eliminatoria no puede haber empate.'
     }
 
     if (!form.value.awayTeam) {

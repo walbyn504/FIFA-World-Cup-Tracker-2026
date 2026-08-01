@@ -135,6 +135,7 @@
                   v-model.number="form.homePrediction"
                   type="number"
                   min="0"
+                  :max="MAX_GOALS"
                   class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
                   :class="errors.homePrediction ? 'border-red-400/60' : 'border-white/20'"
                 >
@@ -147,6 +148,7 @@
                   v-model.number="form.awayPrediction"
                   type="number"
                   min="0"
+                  :max="MAX_GOALS"
                   class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37]"
                   :class="errors.awayPrediction ? 'border-red-400/60' : 'border-white/20'"
                 >
@@ -205,7 +207,7 @@ import type { Timestamp } from 'firebase/firestore'
 import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Prediction } from '~~/shared/types/prediction'
-import { matchStatusLabels } from '~/utils/matchOptions'
+import { matchStatusLabels, MAX_GOALS } from '~/utils/matchOptions'
 
 definePageMeta({
   middleware: 'auth'
@@ -260,16 +262,24 @@ const statusBadgeClass = (status: MatchStatus) => ({
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
+// `v-model.number` en un input vacío no lo convierte a 0 ni a null: como no
+// puede parsearlo, deja el string vacío tal cual, así que hay que chequear
+// explícitamente que sea un número (no solo `== null` o `< 0`).
+const validateGoalCount = (value: unknown): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Ingresá una cantidad de goles.'
+  if (value < 0) return 'Los goles no pueden ser negativos.'
+  if (value > MAX_GOALS) return `Los goles no pueden ser más de ${MAX_GOALS}.`
+  return ''
+}
+
 const validate = (): boolean => {
   errors.value = {}
 
-  if (form.value.homePrediction == null || form.value.homePrediction < 0) {
-    errors.value.homePrediction = 'Ingresá un número válido.'
-  }
+  const homePredictionError = validateGoalCount(form.value.homePrediction)
+  if (homePredictionError) errors.value.homePrediction = homePredictionError
 
-  if (form.value.awayPrediction == null || form.value.awayPrediction < 0) {
-    errors.value.awayPrediction = 'Ingresá un número válido.'
-  }
+  const awayPredictionError = validateGoalCount(form.value.awayPrediction)
+  if (awayPredictionError) errors.value.awayPrediction = awayPredictionError
 
   return Object.keys(errors.value).length === 0
 }
