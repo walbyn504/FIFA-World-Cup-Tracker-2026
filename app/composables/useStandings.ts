@@ -1,6 +1,14 @@
 import type { Team } from '~~/shared/types/team'
 import type { Match } from '~~/shared/types/match'
 
+export interface TopScorer {
+  playerId: string
+  playerName: string
+  teamName: string
+  flag: string
+  goals: number
+}
+
 export interface TeamStanding {
   teamId: string
   teamName: string
@@ -152,5 +160,45 @@ export const useStandings = () => {
     }
   }
 
-  return { getGroupStandings, getOverallTeamStats }
+  // Jugador(es) con más goles anotados, contando todos los partidos finalizados.
+  // Devuelve una lista porque puede haber más de un goleador empatado en la punta.
+  const getTopScorers = async (): Promise<TopScorer[]> => {
+    try {
+      const [teams, matches] = await Promise.all([
+        getAll<Team>('teams'),
+        getAll<Match>('matches')
+      ])
+
+      const flagByTeamName = new Map(teams.map((t) => [t.name, t.flag]))
+      const finishedMatches = matches.filter((match) => match.status === 'finished')
+
+      const tally = new Map<string, TopScorer>()
+      for (const match of finishedMatches) {
+        for (const goal of match.scorers ?? []) {
+          const teamName = goal.team === 'home' ? match.homeTeam : match.awayTeam
+          const existing = tally.get(goal.playerId)
+          if (existing) {
+            existing.goals++
+          } else {
+            tally.set(goal.playerId, {
+              playerId: goal.playerId,
+              playerName: goal.playerName,
+              teamName,
+              flag: flagByTeamName.get(teamName) ?? '',
+              goals: 1
+            })
+          }
+        }
+      }
+
+      const maxGoals = Math.max(0, ...Array.from(tally.values(), (s) => s.goals))
+      if (maxGoals === 0) return []
+      return Array.from(tally.values()).filter((s) => s.goals === maxGoals)
+    } catch (error) {
+      console.error('Error al calcular el goleador del torneo:', error)
+      throw error
+    }
+  }
+
+  return { getGroupStandings, getOverallTeamStats, getTopScorers }
 }

@@ -1,6 +1,6 @@
 <template>
   <div class="h-screen overflow-hidden px-6 py-6 text-[#F5F0E6]">
-    <div class="mx-auto flex h-full max-w-6xl flex-col overflow-y-auto">
+    <div class="stats-scroll mx-auto flex h-full max-w-6xl flex-col overflow-y-auto">
       <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 class="font-['Bebas_Neue'] text-3xl tracking-wide text-white">Estadísticas</h1>
@@ -55,21 +55,23 @@
                 </svg>
               </div>
               <p class="relative text-xs font-semibold uppercase tracking-wider text-white/50">Selección con más goles</p>
-              <div v-if="topScoringTeam" class="relative flex items-center gap-2">
-                <img
-                  v-if="topScoringTeam.flag"
-                  :src="topScoringTeam.flag"
-                  :alt="`Bandera de ${topScoringTeam.name}`"
-                  class="h-6 w-9 shrink-0 rounded border border-white/20 object-cover"
-                >
-                <p class="truncate font-['Bebas_Neue'] text-2xl tracking-wide text-white">{{ topScoringTeam.name }}</p>
-              </div>
+              <ul v-if="topScoringTeams.length" class="relative flex flex-col items-center gap-1.5">
+                <li v-for="team in topScoringTeams" :key="team.name" class="flex items-center gap-2">
+                  <img
+                    v-if="team.flag"
+                    :src="team.flag"
+                    :alt="`Bandera de ${team.name}`"
+                    class="h-6 w-9 shrink-0 rounded border border-white/20 object-cover"
+                  >
+                  <p class="truncate font-['Bebas_Neue'] text-2xl tracking-wide text-white">{{ team.name }}</p>
+                </li>
+              </ul>
               <p v-else class="relative font-['Bebas_Neue'] text-2xl tracking-wide text-white">—</p>
               <span
-                v-if="topScoringTeam"
+                v-if="topScoringTeams.length"
                 class="relative rounded-full bg-[#D4AF37]/15 px-3 py-1 text-sm font-semibold text-[#D4AF37]"
               >
-                {{ topScoringTeam.goals }} goles anotados
+                {{ topScoringTeams[0]?.goals }} goles anotados
               </span>
             </UiGlassCard>
 
@@ -84,24 +86,70 @@
                 </svg>
               </div>
               <p class="relative text-xs font-semibold uppercase tracking-wider text-white/50">Selección menos goleada</p>
-              <div v-if="leastConcededTeam" class="relative flex items-center gap-2">
-                <img
-                  v-if="leastConcededTeam.flag"
-                  :src="leastConcededTeam.flag"
-                  :alt="`Bandera de ${leastConcededTeam.name}`"
-                  class="h-6 w-9 shrink-0 rounded border border-white/20 object-cover"
-                >
-                <p class="truncate font-['Bebas_Neue'] text-2xl tracking-wide text-white">{{ leastConcededTeam.name }}</p>
-              </div>
+              <ul v-if="leastConcededTeams.length" class="relative flex flex-col items-center gap-1.5">
+                <li v-for="team in leastConcededTeams" :key="team.name" class="flex items-center gap-2">
+                  <img
+                    v-if="team.flag"
+                    :src="team.flag"
+                    :alt="`Bandera de ${team.name}`"
+                    class="h-6 w-9 shrink-0 rounded border border-white/20 object-cover"
+                  >
+                  <p class="truncate font-['Bebas_Neue'] text-2xl tracking-wide text-white">{{ team.name }}</p>
+                </li>
+              </ul>
               <p v-else class="relative font-['Bebas_Neue'] text-2xl tracking-wide text-white">—</p>
               <span
-                v-if="leastConcededTeam"
+                v-if="leastConcededTeams.length"
                 class="relative rounded-full bg-sky-400/15 px-3 py-1 text-sm font-semibold text-sky-300"
               >
-                {{ leastConcededTeam.goalsAgainst }} goles recibidos
+                {{ leastConcededTeams[0]?.goalsAgainst }} goles recibidos
               </span>
             </UiGlassCard>
           </div>
+        </section>
+
+        <!-- Rubro: Goleador del torneo -->
+        <section>
+          <h2 class="mb-2 text-xs font-semibold uppercase tracking-wider text-white">Goleador del torneo</h2>
+          <UiGlassCard content-class="relative flex items-center gap-4 overflow-hidden px-6 py-5 text-left">
+            <svg class="pointer-events-none absolute -bottom-6 -right-6 h-28 w-28 text-[#D4AF37]/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7l3 2-1 4h-4l-1-4z" />
+              <path d="M12 3v4M3 12h4M17 12h4M6 6l3 2M18 6l-3 2M6 18l3-2M18 18l-3-2" />
+            </svg>
+            <div class="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F3D77A] to-[#9c7a1a] text-[#04140D] shadow-lg shadow-black/30 ring-2 ring-[#D4AF37]/40">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7l3 2-1 4h-4l-1-4z" />
+              </svg>
+            </div>
+            <div class="relative min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-white/50">
+                  {{ topScorers.length > 1 ? 'Máximos goleadores' : 'Máximo goleador' }}
+                </p>
+                <span
+                  v-if="topScorers.length"
+                  class="shrink-0 rounded-full bg-[#D4AF37]/15 px-3 py-1 text-xs font-semibold text-[#D4AF37]"
+                >
+                  {{ topScorers[0]?.goals }} {{ topScorers[0]?.goals === 1 ? 'gol' : 'goles' }}
+                </span>
+              </div>
+              <ul v-if="topScorers.length" class="mt-1.5 flex flex-col gap-1.5">
+                <li v-for="scorer in topScorers" :key="scorer.playerId" class="flex min-w-0 items-center gap-2">
+                  <img
+                    v-if="scorer.flag"
+                    :src="scorer.flag"
+                    :alt="`Bandera de ${scorer.teamName}`"
+                    class="h-5 w-7 shrink-0 rounded border border-white/20 object-cover"
+                  >
+                  <p class="truncate font-['Bebas_Neue'] text-xl tracking-wide text-white">{{ scorer.playerName }}</p>
+                  <span class="shrink-0 truncate text-xs text-white/50">{{ scorer.teamName }}</span>
+                </li>
+              </ul>
+              <p v-else class="mt-1 font-['Bebas_Neue'] text-2xl tracking-wide text-white">—</p>
+            </div>
+          </UiGlassCard>
         </section>
 
         <!-- Rubro: Panorama del torneo -->
@@ -180,7 +228,7 @@
 
 <script setup lang="ts">
 const { getAllMatches } = useMatches()
-const { getOverallTeamStats } = useStandings()
+const { getOverallTeamStats, getTopScorers } = useStandings()
 const { error } = useNotify()
 
 const isLoading = ref(true)
@@ -189,17 +237,20 @@ const hasError = ref(false)
 const matchesPlayed = ref(0)
 const averageGoals = ref(0)
 const winPercentage = ref(0)
-const topScoringTeam = ref<{ name: string, flag: string, goals: number } | null>(null)
-const leastConcededTeam = ref<{ name: string, flag: string, goalsAgainst: number } | null>(null)
+const topScoringTeams = ref<{ name: string, flag: string, goals: number }[]>([])
+const leastConcededTeams = ref<{ name: string, flag: string, goalsAgainst: number }[]>([])
+const topScorers = ref<Awaited<ReturnType<typeof getTopScorers>>>([])
 
 const loadStats = async () => {
   isLoading.value = true
   hasError.value = false
   try {
-    const [matches, teamStats] = await Promise.all([
+    const [matches, teamStats, scorers] = await Promise.all([
       getAllMatches(),
-      getOverallTeamStats()
+      getOverallTeamStats(),
+      getTopScorers()
     ])
+    topScorers.value = scorers
 
     const finishedMatches = matches.filter((m) => m.status === 'finished')
     matchesPlayed.value = finishedMatches.length
@@ -212,19 +263,20 @@ const loadStats = async () => {
 
     const playedTeams = teamStats.filter((t) => t.played > 0)
 
-    const mostGoals = playedTeams.reduce<typeof playedTeams[number] | null>(
-      (top, team) => (!top || team.goalsFor > top.goalsFor ? team : top),
-      null
-    )
-    topScoringTeam.value = mostGoals ? { name: mostGoals.teamName, flag: mostGoals.flag, goals: mostGoals.goalsFor } : null
+    if (playedTeams.length) {
+      const maxGoalsFor = Math.max(...playedTeams.map((t) => t.goalsFor))
+      topScoringTeams.value = playedTeams
+        .filter((t) => t.goalsFor === maxGoalsFor)
+        .map((t) => ({ name: t.teamName, flag: t.flag, goals: t.goalsFor }))
 
-    const leastConceded = playedTeams.reduce<typeof playedTeams[number] | null>(
-      (best, team) => (!best || team.goalsAgainst < best.goalsAgainst ? team : best),
-      null
-    )
-    leastConcededTeam.value = leastConceded
-      ? { name: leastConceded.teamName, flag: leastConceded.flag, goalsAgainst: leastConceded.goalsAgainst }
-      : null
+      const minGoalsAgainst = Math.min(...playedTeams.map((t) => t.goalsAgainst))
+      leastConcededTeams.value = playedTeams
+        .filter((t) => t.goalsAgainst === minGoalsAgainst)
+        .map((t) => ({ name: t.teamName, flag: t.flag, goalsAgainst: t.goalsAgainst }))
+    } else {
+      topScoringTeams.value = []
+      leastConcededTeams.value = []
+    }
   } catch (err) {
     hasError.value = true
     error('No se pudieron cargar las estadísticas. Intenta de nuevo.')
@@ -235,3 +287,13 @@ const loadStats = async () => {
 
 onMounted(loadStats)
 </script>
+
+<style scoped>
+.stats-scroll {
+  scrollbar-width: none;
+}
+
+.stats-scroll::-webkit-scrollbar {
+  display: none;
+}
+</style>

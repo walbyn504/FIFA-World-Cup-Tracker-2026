@@ -103,6 +103,15 @@
           </div>
         </div>
 
+        <div v-if="homeScorers.length > 0 || awayScorers.length > 0" class="mt-6 flex items-start justify-center gap-4 text-center text-xs text-white/70">
+          <ul class="flex flex-1 flex-col gap-1">
+            <li v-for="(scorer, index) in homeScorers" :key="`home-${index}`">⚽ {{ scorer.playerName }}</li>
+          </ul>
+          <ul class="flex flex-1 flex-col gap-1">
+            <li v-for="(scorer, index) in awayScorers" :key="`away-${index}`">⚽ {{ scorer.playerName }}</li>
+          </ul>
+        </div>
+
         <dl class="mt-8 grid grid-cols-2 gap-4 text-sm">
           <div>
             <dt class="text-white/50">Fecha y hora</dt>
@@ -140,6 +149,9 @@ const hasError = ref(false)
 
 const homeTeam = computed(() => teams.value.find((t) => t.name === match.value?.homeTeam) ?? null)
 const awayTeam = computed(() => teams.value.find((t) => t.name === match.value?.awayTeam) ?? null)
+
+const homeScorers = computed(() => match.value?.scorers?.filter((s) => s.team === 'home') ?? [])
+const awayScorers = computed(() => match.value?.scorers?.filter((s) => s.team === 'away') ?? [])
 
 const formatKickoff = (kickoff: Timestamp) =>
   kickoff.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
