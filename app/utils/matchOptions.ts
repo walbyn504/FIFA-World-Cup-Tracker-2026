@@ -1,5 +1,8 @@
 import type { MatchStatus } from '~~/shared/types/match'
 
+// Tope de goles por equipo (resultado real o predicción)
+export const MAX_GOALS = 10
+
 // Fases del torneo, de fase de grupos a la final
 export const matchStages = [
   'Fase de grupos',
