@@ -262,20 +262,24 @@ const statusBadgeClass = (status: MatchStatus) => ({
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
+// `v-model.number` en un input vacío no lo convierte a 0 ni a null: como no
+// puede parsearlo, deja el string vacío tal cual, así que hay que chequear
+// explícitamente que sea un número (no solo `== null` o `< 0`).
+const validateGoalCount = (value: unknown): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Ingresá una cantidad de goles.'
+  if (value < 0) return 'Los goles no pueden ser negativos.'
+  if (value > MAX_GOALS) return `Los goles no pueden ser más de ${MAX_GOALS}.`
+  return ''
+}
+
 const validate = (): boolean => {
   errors.value = {}
 
-  if (form.value.homePrediction == null || form.value.homePrediction < 0) {
-    errors.value.homePrediction = 'Ingresá un número válido.'
-  } else if (form.value.homePrediction > MAX_GOALS) {
-    errors.value.homePrediction = `Los goles no pueden ser más de ${MAX_GOALS}.`
-  }
+  const homePredictionError = validateGoalCount(form.value.homePrediction)
+  if (homePredictionError) errors.value.homePrediction = homePredictionError
 
-  if (form.value.awayPrediction == null || form.value.awayPrediction < 0) {
-    errors.value.awayPrediction = 'Ingresá un número válido.'
-  } else if (form.value.awayPrediction > MAX_GOALS) {
-    errors.value.awayPrediction = `Los goles no pueden ser más de ${MAX_GOALS}.`
-  }
+  const awayPredictionError = validateGoalCount(form.value.awayPrediction)
+  if (awayPredictionError) errors.value.awayPrediction = awayPredictionError
 
   return Object.keys(errors.value).length === 0
 }

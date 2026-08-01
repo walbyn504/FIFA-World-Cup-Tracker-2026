@@ -474,8 +474,14 @@ const squadSize = (teamName: string): number => {
   return props.players.filter((p) => p.teamId === teamId).length
 }
 
-// Revisa cada campo y llena `errors` si algo no es válido.
-// Devuelve true si el formulario está listo para enviarse.
+// Valida que la cantidad de goles sea un número entero no negativo y no mayor al máximo permitido
+const validateGoalCount = (value: unknown): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Ingresá una cantidad de goles.'
+  if (value < 0) return 'Los goles no pueden ser negativos.'
+  if (value > MAX_GOALS) return `Los goles no pueden ser más de ${MAX_GOALS}.`
+  return ''
+}
+
 const validate = (): boolean => {
   errors.value = {}
 
@@ -566,17 +572,11 @@ const validate = (): boolean => {
   }
 
   if (form.value.status !== 'scheduled') {
-    if (form.value.homeScore == null || form.value.homeScore < 0) {
-      errors.value.homeScore = 'Los goles no pueden ser negativos.'
-    } else if (form.value.homeScore > MAX_GOALS) {
-      errors.value.homeScore = `Los goles no pueden ser más de ${MAX_GOALS}.`
-    }
+    const homeScoreError = validateGoalCount(form.value.homeScore)
+    if (homeScoreError) errors.value.homeScore = homeScoreError
 
-    if (form.value.awayScore == null || form.value.awayScore < 0) {
-      errors.value.awayScore = 'Los goles no pueden ser negativos.'
-    } else if (form.value.awayScore > MAX_GOALS) {
-      errors.value.awayScore = `Los goles no pueden ser más de ${MAX_GOALS}.`
-    }
+    const awayScoreError = validateGoalCount(form.value.awayScore)
+    if (awayScoreError) errors.value.awayScore = awayScoreError
 
     if (!form.value.awayTeam) {
       errors.value.awayTeam = 'El equipo visitante es obligatorio.'
