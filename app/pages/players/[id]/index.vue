@@ -96,6 +96,10 @@
               {{ team?.name ?? 'Sin equipo' }}
             </dd>
           </div>
+          <div>
+            <dt class="text-white/50">Goles anotados</dt>
+            <dd class="mt-1 text-base">{{ goalsScored }}</dd>
+          </div>
         </dl>
       </UiGlassCard>
     </div>
@@ -109,10 +113,12 @@ import type { Team } from '~~/shared/types/team'
 const route = useRoute()
 const { getPlayerById } = usePlayers()
 const { getTeamById } = useTeams()
+const { getAllMatches } = useMatches()
 const { error } = useNotify()
 
 const player = ref<(Player & { id: string }) | null>(null)
 const team = ref<(Team & { id: string }) | null>(null)
+const goalsScored = ref(0)
 const isLoading = ref(true)
 const hasError = ref(false)
 
@@ -121,8 +127,12 @@ const loadPlayer = async () => {
   hasError.value = false
   try {
     const id = route.params.id as string
-    player.value = await getPlayerById(id)
-    team.value = player.value ? await getTeamById(player.value.teamId) : null
+    const [playerResult, matches] = await Promise.all([getPlayerById(id), getAllMatches()])
+    player.value = playerResult
+    team.value = playerResult ? await getTeamById(playerResult.teamId) : null
+    goalsScored.value = matches
+      .filter((m) => m.status === 'finished')
+      .reduce((count, m) => count + (m.scorers?.filter((s) => s.playerId === id).length ?? 0), 0)
   } catch (err) {
     hasError.value = true
     error('No se pudo cargar el jugador. Intenta de nuevo.')

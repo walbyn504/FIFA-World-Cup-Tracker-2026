@@ -198,6 +198,50 @@
             <p v-if="errors.draw" class="col-span-2 text-center text-xs text-red-400">{{ errors.draw }}</p>
           </div>
 
+          <div v-if="form.status !== 'scheduled' && (form.homeScore > 0 || form.awayScore > 0)" class="flex flex-col gap-3">
+            <div v-if="form.homeScore > 0" class="flex flex-col gap-1.5">
+              <span class="text-sm text-white/70">Goleadores {{ form.homeTeam }}</span>
+              <select
+                v-for="(_, index) in form.homeScore"
+                :key="`home-scorer-${index}`"
+                v-model="homeScorers[index]"
+                :disabled="isFinished"
+                class="rounded-xl border border-white/20 bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Gol {{ index + 1 }}: selecciona jugador</option>
+                <option
+                  v-for="player in homeSquad"
+                  :key="player.id"
+                  :value="player.id"
+                  class="bg-[#0F1F17] text-[#F5F0E6]"
+                >
+                  {{ player.name }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="form.awayScore > 0" class="flex flex-col gap-1.5">
+              <span class="text-sm text-white/70">Goleadores {{ form.awayTeam }}</span>
+              <select
+                v-for="(_, index) in form.awayScore"
+                :key="`away-scorer-${index}`"
+                v-model="awayScorers[index]"
+                :disabled="isFinished"
+                class="rounded-xl border border-white/20 bg-[#0F1F17] px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" class="bg-[#0F1F17] text-[#F5F0E6]">Gol {{ index + 1 }}: selecciona jugador</option>
+                <option
+                  v-for="player in awaySquad"
+                  :key="player.id"
+                  :value="player.id"
+                  class="bg-[#0F1F17] text-[#F5F0E6]"
+                >
+                  {{ player.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
           <div class="mt-2 flex justify-end gap-3">
             <button
               type="button"
@@ -222,7 +266,7 @@
 
 <script setup lang="ts">
 import { Timestamp } from 'firebase/firestore'
-import type { Match, MatchStatus } from '~~/shared/types/match'
+import type { Match, MatchGoal, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
 import type { ProjectedSlot } from '~/composables/useBracket'
@@ -437,6 +481,54 @@ const availableStadiums = computed(() => {
   return list
 })
 
+// Jugadores de cada plantilla, para elegir el goleador de cada gol
+const homeSquad = computed(() => {
+  const teamId = props.teams.find((t) => t.name === form.value.homeTeam)?.id
+  return props.players.filter((p) => p.teamId === teamId) as (Player & { id: string })[]
+})
+const awaySquad = computed(() => {
+  const teamId = props.teams.find((t) => t.name === form.value.awayTeam)?.id
+  return props.players.filter((p) => p.teamId === teamId) as (Player & { id: string })[]
+})
+
+// Un select por gol anotado (homeScorers[i] / awayScorers[i] = id del jugador que hizo ese gol)
+const homeScorers = ref<string[]>([])
+const awayScorers = ref<string[]>([])
+
+// Ajusta el largo del array de goleadores para que siempre coincida con la cantidad de goles cargada
+const resizeScorers = (list: string[], count: number): string[] => {
+  const next = list.slice(0, count)
+  while (next.length < count) next.push('')
+  return next
+}
+
+watch(() => form.value.homeScore, (count) => {
+  homeScorers.value = resizeScorers(homeScorers.value, Math.max(0, count || 0))
+}, { immediate: true })
+
+watch(() => form.value.awayScore, (count) => {
+  awayScorers.value = resizeScorers(awayScorers.value, Math.max(0, count || 0))
+}, { immediate: true })
+
+// Arma la lista de goleadores a guardar, descartando los goles que quedaron sin jugador asignado
+const buildScorers = (): MatchGoal[] => {
+  const home: MatchGoal[] = homeScorers.value
+    .filter((playerId) => playerId)
+    .map((playerId) => ({
+      playerId,
+      playerName: homeSquad.value.find((p) => p.id === playerId)?.name ?? '',
+      team: 'home' as const
+    }))
+  const away: MatchGoal[] = awayScorers.value
+    .filter((playerId) => playerId)
+    .map((playerId) => ({
+      playerId,
+      playerName: awaySquad.value.find((p) => p.id === playerId)?.name ?? '',
+      team: 'away' as const
+    }))
+  return [...home, ...away]
+}
+
 // Evita que el auto-completado de estadio/ciudad se dispare al cargar el formulario
 // (por ejemplo, al editar un partido ya guardado), y solo actúe ante un cambio real del usuario
 let isResettingForm = false
@@ -464,6 +556,15 @@ watch(
       isResettingForm = true
       form.value = toFormState(props.initialData)
       errors.value = {}
+      const scorers = props.initialData?.scorers ?? []
+      homeScorers.value = resizeScorers(
+        scorers.filter((s) => s.team === 'home').map((s) => s.playerId),
+        form.value.homeScore || 0
+      )
+      awayScorers.value = resizeScorers(
+        scorers.filter((s) => s.team === 'away').map((s) => s.playerId),
+        form.value.awayScore || 0
+      )
       nextTick(() => { isResettingForm = false })
     }
   }
@@ -621,7 +722,8 @@ const handleSubmit = () => {
   emit('submit', {
     ...rest,
     group: deriveGroup(),
-    kickoff: Timestamp.fromDate(new Date(kickoff))
+    kickoff: Timestamp.fromDate(new Date(kickoff)),
+    scorers: form.value.status !== 'scheduled' ? buildScorers() : []
   })
 }
 </script>

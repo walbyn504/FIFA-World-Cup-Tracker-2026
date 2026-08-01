@@ -141,15 +141,25 @@ async function seedTeams() {
   return teamIdByName
 }
 
+interface SeededPlayer {
+  id: string
+  name: string
+  position: string
+}
+
 async function seedPlayers(teamIdByName: Map<string, string>) {
   console.log('Creando jugadores...')
   let playerCount = 0
+  // Plantilla de cada selección (con el id ya asignado por Firestore), para poder
+  // elegir goleadores al crear los partidos de fase de grupos.
+  const squadsByTeam = new Map<string, SeededPlayer[]>()
 
   for (const preset of worldCupTeams) {
     const teamId = teamIdByName.get(preset.name)!
     const clubs = clubCatalog.filter((c) => c.country === preset.name).map((c) => c.club)
     const realSquad = realSquads[preset.name]
     const batch = db.batch()
+    const squad: SeededPlayer[] = []
     playerCount += realSquad ? realSquad.length : squadPositions.length
 
     if (realSquad) {
@@ -164,28 +174,47 @@ async function seedPlayers(teamIdByName: Map<string, string>) {
           club: clubs.length ? clubs[player.number % clubs.length] : 'Independiente',
           isStarter: player.number <= 11
         })
+        squad.push({ id: playerRef.id, name: player.name, position: player.position })
       })
     } else {
       squadPositions.forEach((position, i) => {
         const playerRef = db.collection('players').doc()
+        const name = `Jugador ${i + 1} - ${preset.name}`
         batch.set(playerRef, {
           teamId,
-          name: `Jugador ${i + 1} - ${preset.name}`,
+          name,
           number: i + 1,
           position,
           club: clubs.length ? clubs[i % clubs.length] : 'Independiente',
           isStarter: starterIndexes.has(i)
         })
+        squad.push({ id: playerRef.id, name, position })
       })
     }
 
     await batch.commit()
+    squadsByTeam.set(preset.name, squad)
   }
 
-  return playerCount
+  return { playerCount, squadsByTeam }
 }
 
-async function seedGroupStageMatches() {
+// Elige un goleador reproducible (sin azar real) para el gol `goalIndex` de
+// `teamName`: prioriza delanteros/mediocampistas (como en un torneo real) y
+// solo cae al resto de la plantilla si no hay ninguno.
+function pickScorer(teamName: string, squad: SeededPlayer[], goalIndex: number): SeededPlayer | null {
+  if (squad.length === 0) return null
+  const attackers = squad.filter((p) => p.position === 'Delantero' || p.position === 'Mediocampista')
+  const pool = attackers.length > 0 ? attackers : squad
+
+  let hash = 7
+  for (const char of `${teamName}|${goalIndex}`) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 997
+  }
+  return pool[hash % pool.length]!
+}
+
+async function seedGroupStageMatches(squadsByTeam: Map<string, SeededPlayer[]>) {
   console.log('Creando partidos de fase de grupos...')
 
   const teamsByGroup = new Map<string, string[]>()
@@ -203,6 +232,21 @@ async function seedGroupStageMatches() {
       const kickoff = new Date(baseDate)
       kickoff.setDate(baseDate.getDate() + Math.floor(matchIndex / 4))
 
+      const homeScore = deterministicScore(homeTeam, awayTeam, 1)
+      const awayScore = deterministicScore(homeTeam, awayTeam, 2)
+      const homeSquad = squadsByTeam.get(homeTeam) ?? []
+      const awaySquad = squadsByTeam.get(awayTeam) ?? []
+
+      const scorers: { playerId: string, playerName: string, team: 'home' | 'away' }[] = []
+      for (let i = 0; i < homeScore; i++) {
+        const scorer = pickScorer(homeTeam, homeSquad, i)
+        if (scorer) scorers.push({ playerId: scorer.id, playerName: scorer.name, team: 'home' })
+      }
+      for (let i = 0; i < awayScore; i++) {
+        const scorer = pickScorer(awayTeam, awaySquad, i)
+        if (scorer) scorers.push({ playerId: scorer.id, playerName: scorer.name, team: 'away' })
+      }
+
       await db.collection('matches').add({
         homeTeam,
         awayTeam,
@@ -211,9 +255,10 @@ async function seedGroupStageMatches() {
         stadium: venue.stadium,
         city: venue.city,
         kickoff: Timestamp.fromDate(kickoff),
-        homeScore: deterministicScore(homeTeam, awayTeam, 1),
-        awayScore: deterministicScore(homeTeam, awayTeam, 2),
-        status: 'finished'
+        homeScore,
+        awayScore,
+        status: 'finished',
+        scorers
       })
 
       matchIndex++
@@ -225,8 +270,8 @@ async function seedGroupStageMatches() {
 
 async function seed() {
   const teamIdByName = await seedTeams()
-  const playerCount = await seedPlayers(teamIdByName)
-  const matchCount = await seedGroupStageMatches()
+  const { playerCount, squadsByTeam } = await seedPlayers(teamIdByName)
+  const matchCount = await seedGroupStageMatches(squadsByTeam)
 
   console.log(`\nListo: ${teamIdByName.size} equipos, ${playerCount} jugadores, ${matchCount} partidos de fase de grupos.`)
 }
