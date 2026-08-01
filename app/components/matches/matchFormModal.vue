@@ -176,7 +176,7 @@
                 :max="MAX_GOALS"
                 :disabled="isFinished"
                 class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-                :class="errors.homeScore ? 'border-red-400/60' : 'border-white/20'"
+                :class="errors.homeScore || errors.draw ? 'border-red-400/60' : 'border-white/20'"
               >
               <span v-if="errors.homeScore" class="text-xs text-red-400">{{ errors.homeScore }}</span>
             </label>
@@ -190,10 +190,12 @@
                 :max="MAX_GOALS"
                 :disabled="isFinished"
                 class="rounded-xl border bg-white/5 px-3 py-2.5 text-[#F5F0E6] outline-none focus:border-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
-                :class="errors.awayScore ? 'border-red-400/60' : 'border-white/20'"
+                :class="errors.awayScore || errors.draw ? 'border-red-400/60' : 'border-white/20'"
               >
               <span v-if="errors.awayScore" class="text-xs text-red-400">{{ errors.awayScore }}</span>
             </label>
+
+            <p v-if="errors.draw" class="col-span-2 text-center text-xs text-red-400">{{ errors.draw }}</p>
           </div>
 
           <div class="mt-2 flex justify-end gap-3">
@@ -577,6 +579,16 @@ const validate = (): boolean => {
 
     const awayScoreError = validateGoalCount(form.value.awayScore)
     if (awayScoreError) errors.value.awayScore = awayScoreError
+
+    // En eliminación directa (Dieciseisavos en adelante) siempre tiene que haber un
+    // ganador, pero solo una vez que el partido termina: mientras está "En vivo"
+    // el marcador puede estar empatado en cualquier momento del partido.
+    if (
+      !homeScoreError && !awayScoreError && isKnockoutStage.value &&
+      form.value.status === 'finished' && form.value.homeScore === form.value.awayScore
+    ) {
+      errors.value.draw = 'En fase eliminatoria no puede haber empate.'
+    }
 
     if (!form.value.awayTeam) {
       errors.value.awayTeam = 'El equipo visitante es obligatorio.'
