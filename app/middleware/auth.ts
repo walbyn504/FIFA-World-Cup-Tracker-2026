@@ -12,6 +12,7 @@ export default defineNuxtRouteMiddleware(async () => {
 
   // Ya se sabe con certeza si hay sesion o no
   if (!authStore.isLoggedIn) {
-    return navigateTo('/')
+    // Redirige al usuario a la pagina de inicio de sesion si no hay sesion activa
+    window.location.href = '/'
   }
 })
