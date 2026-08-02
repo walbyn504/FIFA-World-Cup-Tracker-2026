@@ -141,11 +141,13 @@ const isLoading = ref(true)
 const hasError = ref(false)
 const teams = ref<(Team & { id: string })[]>([])
 
+// Define la estructura de un ítem de historial
 interface HistoryItem {
   prediction: Prediction & { id: string }
   match: Match & { id: string }
 }
 
+// Lista de predicciones del usuario con sus partidos correspondientes
 const history = ref<HistoryItem[]>([])
 
 const itemsPerPage = 6
@@ -156,22 +158,26 @@ watch(history, () => {
   currentPage.value = 1
 })
 
+// Partidos a mostrar en la página actual
 const paginatedHistory = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return history.value.slice(start, start + itemsPerPage)
 })
 
+// Devuelve la bandera de un equipo por su nombre
 const teamFlag = (teamName: string) => teams.value.find((t) => t.name === teamName)?.flag ?? ''
 
+// Devuelve la clase CSS para el badge de estado de un partido
 const statusBadgeClass = (status: MatchStatus) => ({
   scheduled: 'bg-white/10 text-white/70',
   live: 'bg-red-500/20 text-red-300',
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
-// En vivo primero, luego programados (más próximo primero), luego finalizados (más reciente primero)
+// Orden de los estados de partido para el filtrado y ordenamiento
 const statusOrder: Record<MatchStatus, number> = { live: 0, scheduled: 1, finished: 2 }
 
+// Carga los datos de los partidos, equipos y predicciones propias del usuario
 const loadHistory = async () => {
   isLoading.value = true
   hasError.value = false

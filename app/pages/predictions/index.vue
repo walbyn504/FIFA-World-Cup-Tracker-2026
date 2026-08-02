@@ -201,11 +201,14 @@ const predictionByMatch = computed(() => {
   return map
 })
 
+// Devuelve el nombre del equipo que ganó según la predicción de goles
 const teamFlag = (teamName: string) => teams.value.find((t) => t.name === teamName)?.flag ?? ''
 
+// Formatea la fecha y hora del partido a un string legible
 const formatKickoff = (kickoff: Timestamp) =>
   kickoff.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+// Estilos de los badges de estado del partido
 const statusBadgeClass = (status: MatchStatus) => ({
   scheduled: 'bg-white/10 text-white/70',
   live: 'bg-red-500/20 text-red-300',
@@ -218,10 +221,10 @@ const predictionButtonLabel = (match: Match & { id: string }): string => {
   return predictionByMatch.value[match.id] ? 'Editar' : 'Predecir'
 }
 
-// Aplica buscador (por selección), filtro de fase y de estado, y ordena
-// siempre programados primero, luego en vivo, luego finalizados
+// Estados de partido ordenados para el filtrado y el ordenamiento
 const statusOrder: Record<MatchStatus, number> = { scheduled: 0, live: 1, finished: 2 }
 
+// Filtra y ordena los partidos según los filtros aplicados y la búsqueda
 const filteredMatches = computed(() => {
   let result = matches.value
 
@@ -257,15 +260,13 @@ watch(filteredMatches, () => {
   currentPage.value = 1
 })
 
+// Partidos a mostrar en la página actual
 const paginatedMatches = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredMatches.value.slice(start, start + itemsPerPage)
 })
 
-// Recalcula el puntaje de las predicciones ya jugadas: las reglas de Firestore
-// solo dejan que cada usuario actualice sus propias predicciones, así que esto
-// se hace desde la sesión de cada dueño (no hay forma de puntuar a todos desde
-// una sola sesión "administradora")
+// Sincroniza los puntos de las predicciones con los resultados de los partidos
 const syncPoints = async () => {
   for (const prediction of predictions.value) {
     const match = matches.value.find((m) => m.id === prediction.matchId)
@@ -278,14 +279,14 @@ const syncPoints = async () => {
     }
   }
 
-  // Refleja el total en el perfil (solo el dueño puede escribir su propio
-  // usuario, así que esto también se hace desde la sesión de cada uno)
+  // Actualiza los puntos totales del usuario si cambiaron
   const totalPoints = predictions.value.reduce((sum, prediction) => sum + prediction.pointsEarned, 0)
   if (authStore.user && totalPoints !== authStore.user.points) {
     await updateProfile({ points: totalPoints })
   }
 }
 
+// Carga los datos de los partidos, equipos y predicciones propias del usuario
 const loadPredictions = async () => {
   isLoading.value = true
   hasError.value = false

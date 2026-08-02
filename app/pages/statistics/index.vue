@@ -241,6 +241,7 @@ const topScoringTeams = ref<{ name: string, flag: string, goals: number }[]>([])
 const leastConcededTeams = ref<{ name: string, flag: string, goalsAgainst: number }[]>([])
 const topScorers = ref<Awaited<ReturnType<typeof getTopScorers>>>([])
 
+// Carga las estadísticas generales del torneo
 const loadStats = async () => {
   isLoading.value = true
   hasError.value = false
@@ -252,23 +253,29 @@ const loadStats = async () => {
     ])
     topScorers.value = scorers
 
+    // Estadísticas de partidos jugados, promedio de goles y porcentaje de victorias
     const finishedMatches = matches.filter((m) => m.status === 'finished')
     matchesPlayed.value = finishedMatches.length
 
+    // Calcula el promedio de goles por partido y el porcentaje de victorias
     const totalGoals = finishedMatches.reduce((sum, m) => sum + m.homeScore + m.awayScore, 0)
     averageGoals.value = finishedMatches.length ? totalGoals / finishedMatches.length : 0
 
+    // Calcula el porcentaje de victorias (partidos con un ganador)
     const decisiveMatches = finishedMatches.filter((m) => m.homeScore !== m.awayScore).length
     winPercentage.value = finishedMatches.length ? (decisiveMatches / finishedMatches.length) * 100 : 0
 
+    // Selecciones con más goles y menos goles recibidos
     const playedTeams = teamStats.filter((t) => t.played > 0)
 
+    // Selecciones con más goles
     if (playedTeams.length) {
       const maxGoalsFor = Math.max(...playedTeams.map((t) => t.goalsFor))
       topScoringTeams.value = playedTeams
         .filter((t) => t.goalsFor === maxGoalsFor)
         .map((t) => ({ name: t.teamName, flag: t.flag, goals: t.goalsFor }))
 
+        // Selecciones con menos goles recibidos
       const minGoalsAgainst = Math.min(...playedTeams.map((t) => t.goalsAgainst))
       leastConcededTeams.value = playedTeams
         .filter((t) => t.goalsAgainst === minGoalsAgainst)

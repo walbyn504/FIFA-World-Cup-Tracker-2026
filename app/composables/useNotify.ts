@@ -21,15 +21,19 @@ export const useNotify = () => {
     }, duration)
   }
 
+  // Funciones de conveniencia para cada tipo de notificación (exito)
   const success = (message: string, title = 'Listo', duration?: number) =>
     push('success', title, message, duration)
 
+  // Funciones de conveniencia para cada tipo de notificación (error)
   const error = (message: string, title = 'Algo salió mal', duration?: number) =>
     push('error', title, message, duration)
 
+  // Funciones de conveniencia para cada tipo de notificación (advertencia)
   const warning = (message: string, title = 'Atención', duration?: number) =>
     push('warning', title, message, duration)
 
+  // Función para descartar una notificación manualmente
   const dismiss = (id: number) => {
     notifications.value = notifications.value.filter((n) => n.id !== id)
   }

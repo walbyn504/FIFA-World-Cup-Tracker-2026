@@ -1,15 +1,5 @@
 // Carga inicial de datos (equipos, jugadores, partidos de fase de grupos) directo a
 // Firestore con Firebase Admin SDK.
-//
-// Requisitos antes de correrlo:
-//   1. Descargar una clave de servicio desde Firebase Console
-//      (Configuración del proyecto > Cuentas de servicio > Generar nueva clave privada)
-//      y guardarla como scripts/serviceAccountKey.json (ya está en .gitignore).
-//   2. npm run seed
-//
-// Grupo, coach y ranking FIFA son valores de referencia, no verificados contra datos
-// oficiales. Los jugadores de 39 selecciones vienen de scripts/realSquads.ts (convocatoria
-// real al Mundial 2026); las 9 restantes usan nombres genéricos ("Jugador N - Equipo").
 
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -70,13 +60,6 @@ function roundRobin(teams: string[]): [string, string][] {
   return pairs
 }
 
-// Marcador reproducible (0-4) a partir de los nombres de los equipos, sin
-// azar real. Depende del texto del enfrentamiento (no de un índice
-// secuencial) para que no se repita cíclicamente entre partidos: con un
-// índice global simple, un grupo de 4 equipos (6 partidos) desfasa el ciclo
-// de módulo 4 en solo 2 por grupo, y esa periodicidad terminaba dándole el
-// mismo marcador (y por lo tanto la misma tabla de posiciones) a demasiados
-// equipos de grupos distintos.
 function deterministicScore(homeTeam: string, awayTeam: string, salt: number): number {
   let hash = salt
   for (const char of `${homeTeam}|${awayTeam}`) {
@@ -85,9 +68,7 @@ function deterministicScore(homeTeam: string, awayTeam: string, salt: number): n
   return hash % 5
 }
 
-// Reparte las selecciones en grupos de 4, intercalando confederaciones. Se
-// calcula a partir de `worldCupTeams` (no de un mapa nombre->grupo
-// hardcodeado) para que nunca quede desincronizado si el catálogo cambia.
+// Crea un objeto TeamStanding vacío para un equipo dado.
 function assignGroups(teams: WorldCupTeamPreset[]): Map<string, string> {
   const byConfederation = new Map<string, WorldCupTeamPreset[]>()
   for (const team of teams) {
@@ -150,8 +131,9 @@ interface SeededPlayer {
 async function seedPlayers(teamIdByName: Map<string, string>) {
   console.log('Creando jugadores...')
   let playerCount = 0
-  // Plantilla de cada selección (con el id ya asignado por Firestore), para poder
-  // elegir goleadores al crear los partidos de fase de grupos.
+
+  // Map de nombre de equipo a lista de jugadores (solo id, nombre y posición) para
+  // poder asignar goleadores a los partidos de fase de grupos.
   const squadsByTeam = new Map<string, SeededPlayer[]>()
 
   for (const preset of worldCupTeams) {
@@ -199,9 +181,7 @@ async function seedPlayers(teamIdByName: Map<string, string>) {
   return { playerCount, squadsByTeam }
 }
 
-// Elige un goleador reproducible (sin azar real) para el gol `goalIndex` de
-// `teamName`: prioriza delanteros/mediocampistas (como en un torneo real) y
-// solo cae al resto de la plantilla si no hay ninguno.
+
 function pickScorer(teamName: string, squad: SeededPlayer[], goalIndex: number): SeededPlayer | null {
   if (squad.length === 0) return null
   const attackers = squad.filter((p) => p.position === 'Delantero' || p.position === 'Mediocampista')

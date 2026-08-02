@@ -14,10 +14,7 @@ const { warning } = useNotify()
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
 
-// Avisa de partidos programados que arrancan en menos de 2 horas y todavía no
-// tienen predicción propia. Se repite en cada chequeo (no queda guardado como
-// "ya avisado") para no depender de que se vea el toast justo en el momento
-// en que aparece.
+// Verifica si hay partidos próximos a iniciar sin predicción del usuario
 const checkUpcomingMatches = async () => {
   if (!authStore.user) return
 
@@ -46,10 +43,11 @@ const checkUpcomingMatches = async () => {
       }
     }
   } catch {
-    // Es un aviso secundario: si falla, no debería interrumpir el resto de la app
+    warning('No se pudieron verificar los partidos próximos.')
   }
 }
 
+// Intervalo para verificar partidos próximos cada 5 minutos
 let checkInterval: ReturnType<typeof setInterval> | undefined
 
 watch(() => authStore.isLoggedIn, (loggedIn) => {

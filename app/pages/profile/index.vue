@@ -74,6 +74,7 @@ const { success, error } = useNotify()
 
 const isModalOpen = ref(false)
 
+// Maneja el envío del formulario de edición de perfil
 const handleSubmit = async (changes: Pick<User, 'name'>) => {
   try {
     await updateProfile(changes)

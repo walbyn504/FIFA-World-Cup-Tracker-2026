@@ -1,9 +1,3 @@
-// Borra los datos sembrados por scripts/seed.ts (equipos, jugadores y partidos)
-// para poder volver a correr el seed sin duplicar documentos.
-// No toca 'users' ni 'predictions' porque no son datos de seed.
-//
-// Requiere la misma clave de servicio que seed.ts (scripts/serviceAccountKey.json).
-// Uso: npm run seed:clear
 
 import { readFileSync } from 'node:fs'
 import path from 'node:path'

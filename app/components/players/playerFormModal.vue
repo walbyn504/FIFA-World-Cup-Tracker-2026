@@ -172,10 +172,7 @@ const emptyPlayer: Player = {
 const form = ref<Player>({ ...emptyPlayer })
 const isEditing = computed(() => !!props.initialData)
 
-// No se puede reasignar a un jugador de selección si la que ya tiene ahora
-// mismo tiene un partido programado o en vivo, o si todavía sigue en
-// competencia en la llave eliminatoria (no tendría sentido alterar esa
-// plantilla a último momento)
+// No se puede editar o eliminar un jugador si ya tiene ahora mismo un partido programado o en vivo
 const teamLocked = computed(() => {
   if (!isEditing.value || !props.initialData?.teamId) return false
   const team = props.teams.find((t) => t.id === props.initialData!.teamId)
@@ -218,7 +215,6 @@ const acceptClubSuggestion = (event: KeyboardEvent) => {
 }
 
 // Permite que el formulario se actualice cuando cambie la propiedad
-// `visible` o `initialData`
 watch(
   () => props.visible,
   (isVisible) => {
@@ -229,8 +225,7 @@ watch(
   }
 )
 
-// Revisa cada campo y llena `errors` si algo no es válido.
-// Devuelve true si el formulario está listo para enviarse.
+
 const validate = (): boolean => {
   errors.value = {}
 

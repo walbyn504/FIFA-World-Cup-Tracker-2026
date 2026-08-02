@@ -190,6 +190,7 @@ const favoriteMatches = computed(() => {
   return allMatches.value.filter((match) => favoriteMatchIds.value.includes(match.id))
 })
 
+// Carga los equipos y partidos favoritos del usuario
 const loadFavorites = async () => {
   isLoading.value = true
   hasError.value = false
@@ -208,6 +209,7 @@ const loadFavorites = async () => {
   }
 }
 
+// Formatea la fecha y hora del partido a un string legible
 const formatKickoff = (kickoff: Timestamp) =>
   kickoff.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 

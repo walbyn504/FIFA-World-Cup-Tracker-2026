@@ -1,14 +1,4 @@
-// Convocatorias reales del Mundial 2026, obtenidas de la Wikipedia en inglés
-// ("2026 FIFA World Cup squads"). Cubre 39 de las 48 selecciones del catálogo
-// (app/utils/worldCupTeams.ts); las 9 restantes (la mayoría de AFC: Arabia
-// Saudita, Australia, Catar, Corea del Sur, Irak, Irán, Japón, Jordania,
-// Uzbekistán) no se llegaron a investigar y usan el fallback genérico de
-// scripts/seed.ts ("Jugador N - Equipo").
-//
-// El dorsal (`number`) respeta la convocatoria real de cada selección. Por
-// convención del fútbol, los dorsales 1-11 corresponden al once titular, así
-// que scripts/seed.ts usa "number <= 11" para derivar `isStarter` en vez de
-// una plantilla fija — evita elegir 3 arqueros titulares a la vez.
+
 export interface RealSquadPlayer {
   name: string
   number: number

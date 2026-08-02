@@ -290,6 +290,7 @@ const teams = ref<(Team & { id: string })[]>([])
 const players = ref<(Player & { id: string })[]>([])
 const standings = ref<Record<string, TeamStanding[]>>({})
 
+// Obtiene los grupos desbloqueados y el cuadro de eliminación proyectado según los resultados actuales
 const unlockedStages = computed(() => getUnlockedStages(standings.value, matches.value))
 const projectedBracket = computed(() => computeProjectedBracket(standings.value, matches.value))
 
@@ -306,22 +307,28 @@ const selectedGroup = ref('')
 const selectedStatus = ref<MatchStatus | ''>('')
 const selectedDate = ref('')
 
+// El partido que se está editando actualmente
 const matchBeingEdited = ref<(Match & { id: string }) | null>(null)
 
+// Obtiene los grupos disponibles según los equipos cargados
 const availableGroups = computed(() => [...new Set(teams.value.map((t) => t.group))].sort())
 const sortedTeams = computed(() => [...teams.value].sort((a, b) => a.name.localeCompare(b.name)))
 
+// Devuelve la bandera de un equipo dado su nombre
 const teamFlag = (teamName: string) => teams.value.find((t) => t.name === teamName)?.flag ?? ''
 
+// Formatea la fecha y hora del partido a un string legible
 const formatKickoff = (kickoff: Timestamp) =>
   kickoff.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+  // Estilos de los badges de estado del partido
 const statusBadgeClass = (status: MatchStatus) => ({
   scheduled: 'bg-white/10 text-white/70',
   live: 'bg-red-500/20 text-red-300',
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
+// Carga los datos de los partidos, equipos, jugadores y tabla de posiciones
 const applyQueryFilter = async () => {
   if (!selectedGroup.value && !selectedStage.value) {
     queriedMatches.value = null
@@ -340,25 +347,31 @@ const applyQueryFilter = async () => {
   }
 }
 
+// Vuelve a limpiar el grupo seleccionado si se cambia la fase
 watch(selectedStage, (stage) => {
   if (stage !== 'Fase de grupos') selectedGroup.value = ''
 })
 
+// Vuelve a aplicar el filtro cada vez que cambian la fase o el grupo
 watch([selectedStage, selectedGroup], applyQueryFilter)
 
+// Filtra los partidos según los filtros aplicados
 const filteredMatches = computed(() => {
   let result = (selectedStage.value || selectedGroup.value) ? (queriedMatches.value ?? []) : matches.value
 
+  // Filtra por equipo seleccionado
   if (selectedTeamName.value) {
     result = result.filter(
       (match) => match.homeTeam === selectedTeamName.value || match.awayTeam === selectedTeamName.value
     )
   }
 
+  // Filtra por estado del partido
   if (selectedStatus.value) {
     result = result.filter((match) => match.status === selectedStatus.value)
   }
 
+  // Filtra por fecha seleccionada
   if (selectedDate.value) {
     result = result.filter((match) => {
       const kickoffDate = match.kickoff.toDate()
@@ -368,6 +381,7 @@ const filteredMatches = computed(() => {
     })
   }
 
+  // Filtra por búsqueda de estadio o ciudad
   const query = searchQuery.value.trim().toLowerCase()
   if (query) {
     result = result.filter(
@@ -375,6 +389,7 @@ const filteredMatches = computed(() => {
     )
   }
 
+  // Ordena los partidos por estado y fecha
   const statusOrder: Record<MatchStatus, number> = { live: 0, scheduled: 1, finished: 2 }
   return [...result].sort((a, b) => {
     const statusDiff = statusOrder[a.status] - statusOrder[b.status]
@@ -388,15 +403,18 @@ const filteredMatches = computed(() => {
 const itemsPerPage = 3
 const currentPage = ref(1)
 
+// Vuelve a la primera página cada vez que cambia el resultado filtrado
 watch(filteredMatches, () => {
   currentPage.value = 1
 })
 
+// Partidos a mostrar en la página actual
 const paginatedMatches = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredMatches.value.slice(start, start + itemsPerPage)
 })
 
+// Carga los partidos, equipos, jugadores y tabla de posiciones
 const loadMatches = async () => {
   isLoading.value = true
   hasError.value = false
@@ -419,16 +437,19 @@ const loadMatches = async () => {
   }
 }
 
+// Abre el modal para crear un nuevo partido
 const openCreateModal = () => {
   matchBeingEdited.value = null
   isModalOpen.value = true
 }
 
+// Abre el modal para editar un partido existente
 const openEditModal = (match: Match & { id: string }) => {
   matchBeingEdited.value = match
   isModalOpen.value = true
 }
 
+// Maneja la creación o actualización de un partido
 const handleSubmit = async (match: Match) => {
   const isEditing = !!matchBeingEdited.value
   try {
@@ -458,6 +479,7 @@ const deleteBlockReason = (match: Match & { id: string }): string => {
   return ''
 }
 
+// Abre el diálogo de confirmación para eliminar un partido
 const askDelete = (id: string) => {
   const match = matches.value.find((m) => m.id === id)
   if (!match || deleteBlockReason(match)) return
@@ -466,6 +488,7 @@ const askDelete = (id: string) => {
   isConfirmOpen.value = true
 }
 
+// Maneja la eliminación de un partido
 const handleDelete = async () => {
   if (!matchToDelete.value) return
   try {

@@ -16,6 +16,7 @@ export const useFavorites = () => {
     return snap.data()
   }
 
+  // Alterna el estado de favorito de un equipo para el usuario autenticado
   const toggleFavoriteTeam = async (teamId: string) => {
     if (!authStore.user) return
 
@@ -42,6 +43,7 @@ export const useFavorites = () => {
     })
   }
 
+  //
   const toggleFavoriteMatch = async (matchId: string) => {
     if (!authStore.user) return
 
@@ -68,18 +70,21 @@ export const useFavorites = () => {
     })
   }
 
+  // Comprueba si un equipo es favorito del usuario autenticado
   const isFavoriteTeam = (teamId: string) => {
     if (!authStore.user) return false
 
     return authStore.user.favoriteTeams.includes(teamId)
   }
 
+  // Comprueba si un partido es favorito del usuario autenticado
   const isFavoriteMatch = (matchId: string) => {
     if (!authStore.user) return false
 
     return authStore.user.favoriteMatches.includes(matchId)
   }
 
+  // Devuelve los ids de equipos y partidos favoritos del usuario autenticado
   const favoriteTeamIds = computed(() => authStore.user?.favoriteTeams ?? [])
   const favoriteMatchIds = computed(() => authStore.user?.favoriteMatches ?? [])
 

@@ -96,6 +96,7 @@
 import type { TeamStanding } from '~/composables/useStandings'
 
 const route = useRoute()
+// El grupo actual se obtiene de la URL
 const groupId = computed(() => route.params.group as string)
 
 const { getGroupStandings } = useStandings()
@@ -104,13 +105,13 @@ const allGroups = ref<Record<string, TeamStanding[]>>({})
 const isLoading = ref(true)
 const hasError = ref(false)
 
-// Todos los grupos ya cargados, para las pestañas de navegación (A, B, C...)
+// Todos los grupos ya cargados
 const groupKeys = computed(() => Object.keys(allGroups.value).sort())
 
-// El grupo actual (segun la URL) se deriva de lo que ya está cargado, sin
-// volver a pedirlo: cambiar de pestaña solo cambia route.params.group
+// Tabla de posiciones del grupo actual
 const standings = computed(() => allGroups.value[groupId.value] ?? [])
 
+// Carga la tabla de posiciones de todos los grupos
 const loadStandings = async () => {
   isLoading.value = true
   hasError.value = false

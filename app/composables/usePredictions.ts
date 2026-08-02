@@ -19,14 +19,11 @@ export const usePredictions = () => {
   // Crea una predicción nueva
   const createPrediction = (prediction: Prediction) => create('predictions', prediction)
 
-  // Actualiza una predicción existente. Las reglas de Firestore solo dejan
-  // actualizar (ni eliminar) las predicciones propias, así que esto siempre
-  // se llama sobre una predicción del usuario autenticado
+  // Actualiza una predicción existente
   const updatePrediction = (predictionId: string, changes: Partial<Prediction>) =>
     update<Prediction>('predictions', predictionId, changes)
 
-  // Puntos que otorga una predicción ya jugada: 3 si acertó el marcador exacto,
-  // 1 si acertó el resultado (local, empate o visitante) sin el marcador exacto, 0 si no
+  // Calcula los puntos obtenidos por una predicción en base al resultado del partido
   const calculatePoints = (prediction: Prediction, match: Match): number => {
     if (match.status !== 'finished') return 0
     if (prediction.homePrediction === match.homeScore && prediction.awayPrediction === match.awayScore) return 3

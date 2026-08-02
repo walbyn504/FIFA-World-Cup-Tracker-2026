@@ -147,21 +147,26 @@ const teams = ref<(Team & { id: string })[]>([])
 const isLoading = ref(true)
 const hasError = ref(false)
 
+// Obtenemos los datos del partido y de los equipos
 const homeTeam = computed(() => teams.value.find((t) => t.name === match.value?.homeTeam) ?? null)
 const awayTeam = computed(() => teams.value.find((t) => t.name === match.value?.awayTeam) ?? null)
 
+// Filtramos los goleadores por equipo
 const homeScorers = computed(() => match.value?.scorers?.filter((s) => s.team === 'home') ?? [])
 const awayScorers = computed(() => match.value?.scorers?.filter((s) => s.team === 'away') ?? [])
 
+// Formatea la fecha y hora del partido a un string legible
 const formatKickoff = (kickoff: Timestamp) =>
   kickoff.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+// Estilos de los badges de estado del partido
 const statusBadgeClass = (status: MatchStatus) => ({
   scheduled: 'bg-white/10 text-white/70',
   live: 'bg-red-500/20 text-red-300',
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
+// Carga los datos del partido y de los equipos
 const loadMatch = async () => {
   isLoading.value = true
   hasError.value = false

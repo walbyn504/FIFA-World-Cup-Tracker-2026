@@ -194,6 +194,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { Match } from '~~/shared/types/match'
 
+// Representa un casillero de partido en la llave eliminatoria
 interface SlotMatch {
   homeTeam: string | null
   awayTeam: string | null
@@ -202,6 +203,7 @@ interface SlotMatch {
   status?: Match['status']
 }
 
+// Representa un nodo de partido en la llave eliminatoria
 interface MatchNode extends SlotMatch {
   key: string
   label: string
@@ -218,7 +220,7 @@ const hasError = ref(false)
 const flagByName = ref<Record<string, string>>({})
 const rawRounds = ref<{ stage: string, matches: (Match & { id: string })[] }[]>([])
 
-// - Geometría exacta ajustada -
+// Carga la llave eliminatoria , o la genera si no existe
 const cardWidth = 140
 const cardHeight = 56
 const gapV = 24            
@@ -244,18 +246,13 @@ const xRight = (round: number) => rightInnerX.value + (SIDE_STAGES.length - 1 - 
 
 const totalWidth = computed(() => xRight(0) + cardWidth)
 
-// Factor de escala para que todo el árbol entre en el espacio disponible.
-// Antes esto se adivinaba como un porcentaje de la ventana completa
-// (window.innerHeight * 0.7), pero eso no tiene en cuenta cuánto espacio le
-// queda de verdad al árbol después del encabezado, el padding, ni cosas como
-// la barra de tareas tapando parte de la ventana. Ahora se mide el tamaño
-// real del contenedor con ResizeObserver, así el cálculo siempre es exacto
-// sin importar qué le esté quitando espacio alrededor.
+// Manejo de redimensionamiento del contenedor para escalar la llave
 const treeWrapperRef = ref<HTMLElement | null>(null)
 const availableWidth = ref(0)
 const availableHeight = ref(0)
 let resizeObserver: ResizeObserver | null = null
 
+// Escala la llave para que quepa en el contenedor, pero no más de 1 (100%)
 const treeScale = computed(() => {
   if (!availableWidth.value || !availableHeight.value) return 1
   const scaleByWidth = (availableWidth.value * 0.97) / totalWidth.value
@@ -269,28 +266,29 @@ const finalNodeTop = computed(() => {
   return semiY - 50 
 })
 
-// El orden de `matches` ya viene fijado por useBracket (a partir de la tabla
-// de posiciones y los resultados, no de fechas de kickoff), así que cada
-// índice del arreglo ES el casillero real de la llave: no hace falta (ni se
-// debe) reordenar ni compactar acá.
+// Llena los casilleros de partidos con null si no hay partido, hasta un total dado
 const fillSlots = (matches: (Match & { id: string })[], count: number): (Match & { id: string } | null)[] =>
   Array.from({ length: count }, (_, i) => matches[i] || null)
 
+// Agrupa los partidos por etapa para facilitar la construcción de la llave
 const matchesByStage = computed(() => {
   const map: Record<string, (Match & { id: string })[]> = {}
   for (const round of rawRounds.value) map[round.stage] = round.matches
   return map
 })
 
+// Construye los nodos de partidos para un lado (izquierdo o derecho) de la llave
 const buildSideNodes = (side: 'left' | 'right'): MatchNode[] => {
   const xOf = side === 'left' ? xLeft : xRight
   const nodes: MatchNode[] = []
 
+  // Itera sobre las etapas laterales y llena los nodos de partidos
   SIDE_STAGES.forEach((stage, round) => {
     const total = SIDE_COUNTS[round]! * 2
     const slots = fillSlots(matchesByStage.value[stage] || [], total)
     const half = side === 'left' ? slots.slice(0, total / 2) : slots.slice(total / 2, total)
 
+    // Crea un nodo de partido para cada casillero en la mitad correspondiente
     half.forEach((match, i) => {
       nodes.push({
         key: `${side}-${stage}-${i}`,
@@ -309,20 +307,25 @@ const buildSideNodes = (side: 'left' | 'right'): MatchNode[] => {
   return nodes
 }
 
+// Combina los nodos de partidos de ambos lados para construir la llave completa
 const matchNodes = computed<MatchNode[]>(() => [...buildSideNodes('left'), ...buildSideNodes('right')])
 
+// Crea un casillero vacío para la final o tercer lugar si no hay partido
 const emptySlot = (): SlotMatch => ({ homeTeam: null, awayTeam: null })
 
+// Obtiene el nodo de partido de la final y tercer lugar.
 const finalNode = computed<SlotMatch>(() => {
   const [match] = fillSlots(matchesByStage.value.Final || [], 1)
   return match || emptySlot()
 })
 
+// Obtiene el nodo de partido del tercer lugar
 const thirdNode = computed<SlotMatch>(() => {
   const [match] = fillSlots(matchesByStage.value['Tercer lugar'] || [], 1)
   return match || emptySlot()
 })
 
+// Construye los caminos SVG de los conectores entre los nodos de partidos
 const buildSideConnectors = (side: 'left' | 'right'): string[] => {
   const xOf = side === 'left' ? xLeft : xRight
   const mirrored = side === 'right'
@@ -349,6 +352,7 @@ const buildSideConnectors = (side: 'left' | 'right'): string[] => {
   return paths
 }
 
+// Construye los caminos SVG de los conectores finales hacia la copa y tercer lugar
 const buildFinalConnectors = (): string[] => {
   const lastRound = SIDE_STAGES.length - 1
   const y = centerY(lastRound, 0) + (cardHeight / 2)
@@ -361,22 +365,26 @@ const buildFinalConnectors = (): string[] => {
   ]
 }
 
+// Combina los caminos SVG de los conectores laterales y finales para dibujar la llave completa
 const connectorPaths = computed(() => [
   ...buildSideConnectors('left'),
   ...buildSideConnectors('right'),
   ...buildFinalConnectors()
 ])
 
+// Obtiene la bandera de un equipo por su nombre
 const flagOf = (teamName: string | null | undefined): string | undefined => {
   if (!teamName) return undefined
   return flagByName.value[teamName]
 }
 
+// Determina si un equipo es el ganador de un partido
 const isWinner = (match: SlotMatch, side: 'home' | 'away'): boolean => {
   if (match.status !== 'finished' || match.homeScore === undefined || match.awayScore === undefined) return false
   return side === 'home' ? match.homeScore > match.awayScore : match.awayScore > match.homeScore
 }
 
+// Carga la llave eliminatoria desde el backend, generándola si no existe
 const loadBracket = async () => {
   isLoading.value = true
   hasError.value = false
@@ -395,8 +403,7 @@ const loadBracket = async () => {
   }
 }
 
-// El wrapper solo existe en el DOM una vez que termina de cargar (v-else),
-// así que se observa recién cuando la ref deja de ser null
+// Observa cambios en el contenedor de la llave para ajustar la escala y mantenerla centrada
 watch(treeWrapperRef, (el) => {
   resizeObserver?.disconnect()
   resizeObserver = null

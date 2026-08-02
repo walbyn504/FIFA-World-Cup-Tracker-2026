@@ -160,7 +160,6 @@ const isEditing = computed(() => !!props.initialData)
 const errors = ref<Record<string, string>>({})
 
 // Permite que el formulario se actualice cuando cambie la propiedad 
-// `visible` o `initialData`
 watch(
   () => props.visible,
   (isVisible) => {
@@ -171,8 +170,6 @@ watch(
   }
 )
 
-// Revisa cada campo y llena `errors` si algo no es válido.
-// Devuelve true si el formulario está listo para enviarse.
 const validate = (): boolean => {
   errors.value = {}
 

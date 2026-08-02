@@ -57,8 +57,7 @@ export const useAuth = () => {
     }
   }
 
-  // Actualiza los datos editables del perfil del usuario autenticado
-  // ('points' se recalcula desde las predicciones, no lo edita el usuario a mano)
+  // Actualiza los datos editables del perfil del usuario autenticado y los puntos se otorgan autamaticamente
   const updateProfile = async (changes: Partial<Pick<User, 'name'  | 'points'>>) => {
     if (!authStore.user) return
 

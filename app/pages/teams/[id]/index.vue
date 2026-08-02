@@ -119,6 +119,7 @@ const team = ref<(Team & { id: string }) | null>(null)
 const isLoading = ref(true)
 const hasError = ref(false)
 
+// Función para cargar los datos del equipo según el ID de la ruta
 const loadTeam = async () => {
   isLoading.value = true
   hasError.value = false

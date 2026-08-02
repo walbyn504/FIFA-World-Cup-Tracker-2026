@@ -140,24 +140,25 @@ const standingsByGroup = ref<Record<string, TeamStanding[]>>({})
 const isLoading = ref(true)
 const hasError = ref(false)
 
-// Grupos ordenados alfabéticamente (A, B, C...)
+// Grupos ordenados alfabéticamente
 const groups = computed(() => Object.keys(standingsByGroup.value).sort())
 
 const selectedGroup = ref('')
 
-// Filtra por el grupo elegido en el buscador (o muestra todos)
+// Filtra por el grupo elegido en el buscador
 const filteredGroups = computed(() =>
   selectedGroup.value ? groups.value.filter((group) => group === selectedGroup.value) : groups.value
 )
 
-const itemsPerPage = 12
-const currentPage = ref(1)
+const itemsPerPage = 12 // Cantidad de grupos a mostrar por página
+const currentPage = ref(1) // Página actual del paginador
 
 // Vuelve a la primera página cada vez que cambia el resultado filtrado
 watch(filteredGroups, () => {
   currentPage.value = 1
 })
 
+// Grupos a mostrar en la página actual
 const paginatedGroups = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredGroups.value.slice(start, start + itemsPerPage)
@@ -173,6 +174,7 @@ const getGroupSlots = (group: string): (TeamStanding | null)[] => {
   return Array.from({ length: 4 }, (_, i) => teams[i] ?? null)
 }
 
+// Carga la tabla de posiciones de todos los grupos
 const loadStandings = async () => {
   isLoading.value = true
   hasError.value = false
