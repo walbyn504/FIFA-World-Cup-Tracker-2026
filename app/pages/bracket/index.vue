@@ -194,6 +194,10 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { Match } from '~~/shared/types/match'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 // Representa un casillero de partido en la llave eliminatoria
 interface SlotMatch {
   homeTeam: string | null

@@ -133,6 +133,10 @@
 <script setup lang="ts">
 import type { TeamStanding } from '~/composables/useStandings'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const { getGroupStandings } = useStandings()
 const { error } = useNotify()
 

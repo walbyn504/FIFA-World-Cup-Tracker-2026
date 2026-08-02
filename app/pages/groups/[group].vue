@@ -95,6 +95,10 @@
 <script setup lang="ts">
 import type { TeamStanding } from '~/composables/useStandings'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const route = useRoute()
 // El grupo actual se obtiene de la URL
 const groupId = computed(() => route.params.group as string)

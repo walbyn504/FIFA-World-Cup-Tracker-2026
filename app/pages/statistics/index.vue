@@ -227,6 +227,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: 'auth'
+})
+
 const { getAllMatches } = useMatches()
 const { getOverallTeamStats, getTopScorers } = useStandings()
 const { error } = useNotify()

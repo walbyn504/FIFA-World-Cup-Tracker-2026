@@ -196,6 +196,10 @@ import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
 import type { Match } from '~~/shared/types/match'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const { getAllTeams, getTeamsByGroup, createTeam, updateTeam, deleteTeam } = useTeams()
 const { getAllPlayers } = usePlayers()
 const { getAllMatches } = useMatches()

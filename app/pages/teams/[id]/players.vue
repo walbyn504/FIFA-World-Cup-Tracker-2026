@@ -150,6 +150,10 @@
 import type { Player } from '~~/shared/types/player'
 import type { Team } from '~~/shared/types/team'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const route = useRoute()
 const teamId = route.params.id as string
 
