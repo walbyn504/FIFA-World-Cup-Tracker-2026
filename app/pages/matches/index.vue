@@ -273,6 +273,10 @@ import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import type { Player } from '~~/shared/types/player'
 import type { TeamStanding } from '~/composables/useStandings'
+
+definePageMeta({
+  middleware: 'auth'
+})
 import { getUnlockedStages, computeProjectedBracket } from '~/composables/useBracket'
 import { matchStages, matchStatuses, matchStatusLabels } from '~/utils/matchOptions'
 

@@ -190,6 +190,10 @@ import type { Match } from '~~/shared/types/match'
 import type { TeamStanding } from '~/composables/useStandings'
 import { isTeamStillInContention } from '~/composables/useBracket'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const { getAllPlayers, getPlayersByTeam, createPlayer, updatePlayer, deletePlayer } = usePlayers()
 const { getAllTeams } = useTeams()
 const { getAllMatches } = useMatches()

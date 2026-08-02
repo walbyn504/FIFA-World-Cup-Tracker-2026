@@ -137,6 +137,10 @@ import type { Match, MatchStatus } from '~~/shared/types/match'
 import type { Team } from '~~/shared/types/team'
 import { matchStatusLabels } from '~/utils/matchOptions'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const route = useRoute()
 const { getMatchById } = useMatches()
 const { getAllTeams } = useTeams()

@@ -111,6 +111,10 @@
 <script setup lang="ts">
 import type { Team } from '~~/shared/types/team'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const route = useRoute()
 const { getTeamById } = useTeams()
 const { error } = useNotify()
