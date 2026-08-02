@@ -57,6 +57,7 @@
 const authStore = useAuthStore()
 const { logout } = useAuth()
 
+// Links de navegación del header
 const navLinks = [
   { to: '/', label: 'Inicio' },
   { to: '/teams', label: 'Equipos' },

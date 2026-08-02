@@ -202,10 +202,7 @@ const teams = ref<(Team & { id: string })[]>([])
 const matches = ref<(Match & { id: string })[]>([])
 const standings = ref<Record<string, TeamStanding[]>>({})
 
-// Un jugador no se puede eliminar si su selección tiene un partido en curso
-// (programado o en vivo), o si todavía sigue en competencia en la llave
-// eliminatoria (aunque el próximo cruce no se haya generado todavía, por
-// ejemplo mientras espera el resultado del rival de la ronda anterior)
+// Devuelve un mensaje de bloqueo si el jugador no puede eliminarse
 const blockDeleteReason = (player: Player & { id: string }): string | null => {
   const team = teams.value.find((t) => t.id === player.teamId)
   if (!team) return null
@@ -223,6 +220,7 @@ const blockDeleteReason = (player: Player & { id: string }): string | null => {
 
   return null
 }
+
 const isLoading = ref(true)
 const isFiltering = ref(false)
 const hasError = ref(false)
@@ -232,13 +230,12 @@ const playerToDelete = ref<string | null>(null)
 const searchQuery = ref('')
 const selectedTeamId = ref('')
 
-// Guarda el jugador que se esta editando (con su id).
-// Si es null, el modal esta en modo "crear"
+//
 const playerBeingEdited = ref<(Player & { id: string }) | null>(null)
 
 const teamNameById = (teamId: string) => teams.value.find((t) => t.id === teamId)?.name ?? 'Sin equipo'
 
-// Consulta a Firestore (where 'teamId') los jugadores del equipo seleccionado
+// Aplica el filtro por selección si se eligió una, o muestra todos los jugadores
 const applyTeamFilter = async (teamId: string) => {
   if (!teamId) {
     teamPlayers.value = null
@@ -255,10 +252,10 @@ const applyTeamFilter = async (teamId: string) => {
   }
 }
 
+// Vuelve a aplicar el filtro cada vez que cambia la selección elegida
 watch(selectedTeamId, (teamId) => applyTeamFilter(teamId))
 
-// Aplica el buscador por nombre sobre la selección elegida (o sobre todos los jugadores)
-// y ordena alfabéticamente por nombre
+// Filtra los jugadores por nombre y por selección, y los ordena alfabéticamente
 const filteredPlayers = computed(() => {
   const source = selectedTeamId.value ? (teamPlayers.value ?? []) : players.value
   const query = searchQuery.value.trim().toLowerCase()
@@ -279,6 +276,7 @@ const paginatedPlayers = computed(() => {
   return filteredPlayers.value.slice(start, start + itemsPerPage)
 })
 
+// Carga los jugadores, equipos, partidos y tabla de posiciones
 const loadPlayers = async () => {
   isLoading.value = true
   hasError.value = false
@@ -301,11 +299,13 @@ const loadPlayers = async () => {
   }
 }
 
+// Abre el modal para crear un nuevo jugador
 const openCreateModal = () => {
   playerBeingEdited.value = null
   isModalOpen.value = true
 }
 
+// Abre el modal para editar un jugador existente
 const openEditModal = (player: Player & { id: string }) => {
   playerBeingEdited.value = player
   isModalOpen.value = true
@@ -328,6 +328,7 @@ const handleSubmit = async (player: Player) => {
   }
 }
 
+// Abre el diálogo de confirmación para eliminar un jugador
 const askDelete = (id: string) => {
   const player = players.value.find((p) => p.id === id)
   if (!player) return
@@ -342,6 +343,7 @@ const askDelete = (id: string) => {
   isConfirmOpen.value = true
 }
 
+// Maneja la eliminación de un jugador
 const handleDelete = async () => {
   if (!playerToDelete.value) return
   try {

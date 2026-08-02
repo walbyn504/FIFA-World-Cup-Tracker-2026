@@ -207,8 +207,7 @@ const groupTeams = ref<(Team & { id: string })[] | null>(null)
 const players = ref<(Player & { id: string })[]>([])
 const matches = ref<(Match & { id: string })[]>([])
 
-// Motivo por el que un equipo no se puede eliminar (FK "manual": jugadores o
-// partidos que lo referencian por nombre), o null si se puede eliminar sin problema
+// Función que determina si un equipo puede ser eliminado o no
 const blockDeleteReason = (team: Team & { id: string }): string | null => {
   if (players.value.some((p) => p.teamId === team.id)) {
     return 'No se puede eliminar: la selección tiene jugadores registrados.'
@@ -252,8 +251,7 @@ const applyGroupFilter = async (group: string) => {
 
 watch(selectedGroup, (group) => applyGroupFilter(group))
 
-// Aplica el buscador por nombre sobre el grupo seleccionado (o sobre todos los equipos)
-// y ordena alfabéticamente por nombre
+// Equipos filtrados por búsqueda y grupo, ordenados alfabéticamente
 const filteredTeams = computed(() => {
   const source = selectedGroup.value ? (groupTeams.value ?? []) : teams.value
   const query = searchQuery.value.trim().toLowerCase()
@@ -269,15 +267,16 @@ watch(filteredTeams, () => {
   currentPage.value = 1
 })
 
+// Equipos a mostrar en la página actual
 const paginatedTeams = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   return filteredTeams.value.slice(start, start + itemsPerPage)
 })
 
-// Guarda el equipo que se está editando (con su id).
-// Si es null, el modal está en modo "crear"
+// Equipo que se está editando actualmente en el modal
 const teamBeingEdited = ref<(Team & { id: string }) | null>(null)
 
+// Carga todos los equipos, jugadores y partidos
 const loadTeams = async () => {
   isLoading.value = true
   hasError.value = false
@@ -297,11 +296,13 @@ const loadTeams = async () => {
   }
 }
 
+// Abre el modal para crear un nuevo equipo
 const openCreateModal = () => {
   teamBeingEdited.value = null
   isModalOpen.value = true
 }
 
+// Abre el modal para editar un equipo existente
 const openEditModal = (team: Team & { id: string }) => {
   teamBeingEdited.value = team
   isModalOpen.value = true
@@ -324,10 +325,12 @@ const handleSubmit = async (team: Team) => {
   }
 }
 
+// Abre el diálogo de confirmación para eliminar un equipo
 const askDelete = (id: string) => {
   const team = teams.value.find((t) => t.id === id)
   if (!team) return
 
+  // Verifica si hay una razón para bloquear la eliminación del equipo
   const reason = blockDeleteReason(team)
   if (reason) {
     error(reason)
@@ -338,6 +341,7 @@ const askDelete = (id: string) => {
   isConfirmOpen.value = true
 }
 
+// Elimina el equipo confirmado en el diálogo
 const handleDelete = async () => {
   if (!teamToDelete.value) return
   try {

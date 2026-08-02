@@ -1,6 +1,7 @@
 import type { Team } from '~~/shared/types/team'
 import type { Match } from '~~/shared/types/match'
 
+// Representa un goleador del torneo
 export interface TopScorer {
   playerId: string
   playerName: string
@@ -9,6 +10,7 @@ export interface TopScorer {
   goals: number
 }
 
+// Representa la posición de un equipo en la tabla de posiciones
 export interface TeamStanding {
   teamId: string
   teamName: string
@@ -24,6 +26,7 @@ export interface TeamStanding {
   points: number
 }
 
+// Composable para calcular la tabla de posiciones y estadísticas del torneo
 export const useStandings = () => {
   const { getAll } = useFirestore()
 
@@ -42,8 +45,7 @@ export const useStandings = () => {
     points: 0
   })
 
-  // Calcula la tabla de posiciones de fase de grupos, agrupada por grupo.
-  // Solo cuentan los partidos de "Fase de grupos" ya finalizados.
+  // Calcula la tabla de posiciones de la fase de grupos considerando solo los partidos finalizados
     const getGroupStandings = async (): Promise<Record<string, TeamStanding[]>> => {
     try {
         const [teams, matches] = await Promise.all([
@@ -108,8 +110,7 @@ export const useStandings = () => {
     }
     }
 
-  // Estadísticas por selección considerando TODOS los partidos finalizados,
-  // sin importar la fase (a diferencia de getGroupStandings, que solo mira fase de grupos).
+  // Calcula las estadísticas generales de los equipos considerando todos los partidos finalizados.
   const getOverallTeamStats = async (): Promise<TeamStanding[]> => {
     try {
       const [teams, matches] = await Promise.all([
@@ -160,8 +161,7 @@ export const useStandings = () => {
     }
   }
 
-  // Jugador(es) con más goles anotados, contando todos los partidos finalizados.
-  // Devuelve una lista porque puede haber más de un goleador empatado en la punta.
+  // Calcula los goleadores del torneo considerando todos los partidos finalizados.
   const getTopScorers = async (): Promise<TopScorer[]> => {
     try {
       const [teams, matches] = await Promise.all([

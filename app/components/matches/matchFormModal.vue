@@ -273,10 +273,10 @@ import type { ProjectedSlot } from '~/composables/useBracket'
 import { matchStatuses, matchStatusLabels, MAX_GOALS } from '~/utils/matchOptions'
 import { matchVenues } from '~/utils/matchVenues'
 
-// Cantidad mínima de jugadores en plantilla para poder disputar un partido
+// Cantidad mínima de jugadores en plantilla
 const MIN_SQUAD_SIZE = 11
 
-// Define las propiedades que el componente espera recibir
+// Obtiene la instancia del store de autenticación
 const props = defineProps<{
   visible: boolean
   initialData?: (Match & { id?: string }) | null
@@ -293,7 +293,7 @@ const emit = defineEmits<{
   submit: [match: Match]
 }>()
 
-// El formulario usa `kickoff` como string (datetime-local) en vez del Timestamp que guarda Firestore
+// Define el estado del formulario y si se está editando un partido existente
 type MatchFormState = Omit<Match, 'kickoff'> & { kickoff: string }
 
 const emptyMatch: MatchFormState = {
@@ -317,6 +317,7 @@ const toDatetimeLocal = (timestamp: Match['kickoff']): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+// Convierte el estado de un partido a la forma que espera el formulario
 const toFormState = (match?: (Match & { id?: string }) | null): MatchFormState =>
   match ? { ...match, kickoff: toDatetimeLocal(match.kickoff) } : { ...emptyMatch }
 
@@ -324,17 +325,13 @@ const toFormState = (match?: (Match & { id?: string }) | null): MatchFormState =
 const form = ref<MatchFormState>(toFormState(props.initialData))
 const isEditing = computed(() => !!props.initialData)
 
-// Un partido que ya arrancó (en vivo) o terminó no puede cambiar de equipos, estadio,
-// fecha, etc.: solo se actualiza el marcador y el estado (para poder pasar de en vivo a finalizado)
+// Un partido que ya arrancó (en vivo) o terminó no puede cambiar, solo se actualiza el marcador y el estado
 const isLocked = computed(() => isEditing.value && props.initialData?.status !== 'scheduled')
 
-// Un partido ya finalizado no se puede volver a editar de ninguna forma (ni
-// el marcador): queda fijo para siempre
+// Un partido ya finalizado no se puede volver a editar
 const isFinished = computed(() => isEditing.value && props.initialData?.status === 'finished')
 
-// Fases que se pueden elegir ahora mismo: las que ya están habilitadas según el
-// avance del torneo, más la fase propia del partido (si se está editando uno ya
-// creado), para no dejarlo sin opción válida aunque esa fase ya no esté "activa"
+// Filtra las fases disponibles
 const availableStages = computed(() => {
   const original = props.initialData?.stage
   if (original && !props.unlockedStages.includes(original)) {
@@ -343,7 +340,7 @@ const availableStages = computed(() => {
   return props.unlockedStages
 })
 
-// No se puede "retroceder" el estado de un partido (de en vivo a programado, o de finalizado a otra cosa)
+// Filtra los estados disponibles según el estado original del partido
 const availableStatuses = computed(() => {
   const original = props.initialData?.status
   if (original === 'finished') return matchStatuses.filter((s) => s.value === 'finished')
@@ -351,10 +348,7 @@ const availableStatuses = computed(() => {
   return matchStatuses
 })
 
-// Fecha y hora actuales en formato datetime-local: sirve de mínimo para "Programado"
-// (no se puede programar en el pasado) y de máximo para "En Vivo"/"Finalizado" (no pueden ser a futuro).
-// Es una función (no un computed) para que se recalcule en cada render y no quede "congelada"
-// en el momento en que se abrió el modal.
+// Devuelve la fecha y hora actual en el formato que espera <input type="datetime-local">
 const nowKickoff = (): string => {
   const date = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -364,9 +358,7 @@ const nowKickoff = (): string => {
 // Guarda los mensajes de error por campo
 const errors = ref<Record<string, string>>({})
 
-// El selector nativo del navegador no siempre respeta la hora exacta de `min`/`max`
-// (solo la fecha), así que la fecha/hora se valida también acá, en cuanto cambia,
-// para mostrar el error de inmediato y no solo al enviar el formulario.
+// Valida que la fecha y hora del partido sea coherente con el estado elegido
 const validateKickoff = (): string => {
   if (!form.value.kickoff) return ''
   const kickoffTime = new Date(form.value.kickoff).getTime()
@@ -392,30 +384,24 @@ const validateKickoff = (): string => {
   return ''
 }
 
-// En fase eliminatoria no hay "grupo": el rival de cada equipo ya lo fija la
-// llave (computeProjectedBracket), así que el formulario no puede dejar armar
-// cualquier combinación, solo el cruce real de esa fase
+// Valida que la cantidad de goles sea coherente con el estado del partido
 const isKnockoutStage = computed(() => !!form.value.stage && form.value.stage !== 'Fase de grupos')
 const stageMatchups = computed(() => props.projectedBracket[form.value.stage] || [])
 
-// Nombre del rival que le toca a `teamName` en la fase elegida, según la llave
-// (undefined si ese equipo no juega esa fase, o la llave todavía no lo define)
+// Devuelve el rival de un equipo en la fase eliminatoria según la llave proyectada
 const bracketOpponentOf = (teamName: string): string | undefined => {
   const pair = stageMatchups.value.find((m) => m.homeTeam === teamName || m.awayTeam === teamName)
   if (!pair) return undefined
   return pair.homeTeam === teamName ? pair.awayTeam : pair.homeTeam
 }
 
-// Todos los equipos que juegan la fase elegida, según la llave
+// Filtra los equipos que participan en la fase elegida, según las llaves proyectadas
 const teamsInStage = computed(() => {
   const names = new Set(stageMatchups.value.flatMap((m) => [m.homeTeam, m.awayTeam]).filter(Boolean))
   return props.teams.filter((t) => names.has(t.name))
 })
 
-// Filtra las opciones del visitante: en fase de grupos, segun el grupo del local
-// ya elegido; en fase eliminatoria, solo el rival real que le toca al local
-// según la llave. Siempre incluye el equipo ya guardado, aunque el filtro lo
-// hubiera excluido
+// Filtra las opciones del visitante (local-rival)
 const availableAwayTeams = computed(() => {
   let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.homeTeam) {
@@ -437,9 +423,7 @@ const availableAwayTeams = computed(() => {
   return list
 })
 
-// Filtra las opciones del local: en fase de grupos, segun el grupo del visitante
-// ya elegido; en fase eliminatoria, solo el rival real que le toca al visitante
-// según la llave
+// Filtra las opciones del local (visitante-rival)
 const availableHomeTeams = computed(() => {
   let list: (Team & { id: string })[]
   if (form.value.stage === 'Fase de grupos' && form.value.awayTeam) {
@@ -481,7 +465,7 @@ const availableStadiums = computed(() => {
   return list
 })
 
-// Jugadores de cada plantilla, para elegir el goleador de cada gol
+// Jugadores de cada plantilla, para elegir el anotador de cada gol
 const homeSquad = computed(() => {
   const teamId = props.teams.find((t) => t.name === form.value.homeTeam)?.id
   return props.players.filter((p) => p.teamId === teamId) as (Player & { id: string })[]
@@ -491,7 +475,7 @@ const awaySquad = computed(() => {
   return props.players.filter((p) => p.teamId === teamId) as (Player & { id: string })[]
 })
 
-// Un select por gol anotado (homeScorers[i] / awayScorers[i] = id del jugador que hizo ese gol)
+// select para cada anotador de un gol
 const homeScorers = ref<string[]>([])
 const awayScorers = ref<string[]>([])
 
@@ -502,15 +486,17 @@ const resizeScorers = (list: string[], count: number): string[] => {
   return next
 }
 
+// Ajusta la cantidad de select de goleadores cuando cambia la cantidad de goles
 watch(() => form.value.homeScore, (count) => {
   homeScorers.value = resizeScorers(homeScorers.value, Math.max(0, count || 0))
 }, { immediate: true })
 
+// Ajusta la cantidad de select de goleadores cuando cambia la cantidad de goles
 watch(() => form.value.awayScore, (count) => {
   awayScorers.value = resizeScorers(awayScorers.value, Math.max(0, count || 0))
 }, { immediate: true })
 
-// Arma la lista de goleadores a guardar, descartando los goles que quedaron sin jugador asignado
+// Arma la lista de goleadores a guardar
 const buildScorers = (): MatchGoal[] => {
   const home: MatchGoal[] = homeScorers.value
     .filter((playerId) => playerId)
@@ -529,8 +515,7 @@ const buildScorers = (): MatchGoal[] => {
   return [...home, ...away]
 }
 
-// Evita que el auto-completado de estadio/ciudad se dispare al cargar el formulario
-// (por ejemplo, al editar un partido ya guardado), y solo actúe ante un cambio real del usuario
+// Evita que el auto-completado se disparen al resetear el formulario
 let isResettingForm = false
 
 // Al elegir la ciudad, se autocompleta el estadio (relación 1 a 1 en el catálogo)
@@ -548,7 +533,6 @@ watch(() => form.value.stage, () => {
 })
 
 // Permite que el formulario se actualice cuando cambie la propiedad
-// `visible` o `initialData`
 watch(
   () => props.visible,
   (isVisible) => {
@@ -642,9 +626,6 @@ const validate = (): boolean => {
   }
 
   // Ningún equipo puede jugar un partido si su plantilla no tiene el mínimo de jugadores.
-  // No aplica a partidos ya en vivo/finalizados (isLocked): ahí los equipos ya no se pueden
-  // cambiar, y no tendría sentido bloquear la actualización del marcador de un partido viejo
-  // solo porque la plantilla del equipo cambió después.
   if (!isLocked.value) {
     if (form.value.homeTeam && !errors.value.homeTeam && squadSize(form.value.homeTeam) < MIN_SQUAD_SIZE) {
       errors.value.homeTeam = `El equipo local no tiene la cantidad mínima de jugadores (${MIN_SQUAD_SIZE}) en plantilla.`
@@ -681,9 +662,7 @@ const validate = (): boolean => {
     const awayScoreError = validateGoalCount(form.value.awayScore)
     if (awayScoreError) errors.value.awayScore = awayScoreError
 
-    // En eliminación directa (Dieciseisavos en adelante) siempre tiene que haber un
-    // ganador, pero solo una vez que el partido termina: mientras está "En vivo"
-    // el marcador puede estar empatado en cualquier momento del partido.
+    // En eliminación directa (Dieciseisavos en adelante) no puede haber empate
     if (
       !homeScoreError && !awayScoreError && isKnockoutStage.value &&
       form.value.status === 'finished' && form.value.homeScore === form.value.awayScore
@@ -708,7 +687,6 @@ const validate = (): boolean => {
 }
 
 // El grupo no se pide en el formulario: se toma del grupo del equipo local
-// (solo tiene sentido en la fase de grupos, ya que en llaves eliminatorias no aplica)
 const deriveGroup = (): string => {
   if (form.value.stage !== 'Fase de grupos') return ''
   return props.teams.find((t) => t.name === form.value.homeTeam)?.group ?? ''

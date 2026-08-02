@@ -122,6 +122,7 @@ const goalsScored = ref(0)
 const isLoading = ref(true)
 const hasError = ref(false)
 
+// Carga la información del jugador, su equipo y los goles anotados
 const loadPlayer = async () => {
   isLoading.value = true
   hasError.value = false

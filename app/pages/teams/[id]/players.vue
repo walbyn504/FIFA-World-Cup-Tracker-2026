@@ -179,11 +179,13 @@ watch(substitutes, () => {
   substitutesPage.value = 1
 })
 
+// Subconjunto de suplentes a mostrar según la página actual
 const paginatedSubstitutes = computed(() => {
   const start = (substitutesPage.value - 1) * substitutesPerPage
   return substitutes.value.slice(start, start + substitutesPerPage)
 })
 
+// Estructura de filas en la cancha según la posición de los jugadores
 const formationRows = computed(() =>
   positionOrder
     .map((position) => ({
@@ -199,10 +201,12 @@ const toggleStarter = async (player: Player & { id: string }) => {
     warning('Ya hay 11 titulares en este equipo.')
     return
   }
+  // Evita que haya más de un portero titular
   if (!player.isStarter && player.position === 'Portero' && hasStartingGoalkeeper.value) {
     warning('Ya hay un portero titular en este equipo.')
     return
   }
+  // Evita que un portero titular quede sin suplente
   togglingId.value = player.id
   try {
     await updatePlayer(player.id, { isStarter: !player.isStarter })
@@ -214,6 +218,7 @@ const toggleStarter = async (player: Player & { id: string }) => {
   }
 }
 
+// Carga la información del equipo y su plantilla de jugadores
 const loadData = async () => {
   isLoading.value = true
   hasError.value = false

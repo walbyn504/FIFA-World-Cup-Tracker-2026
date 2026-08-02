@@ -198,6 +198,7 @@ const qualifiedTeams = ref(0)
 const predictionsCount = ref(0)
 const rankedUsers = ref<{ name: string, points: number }[]>([])
 
+// Estilos para el badge de ranking según la posición del usuario
 const rankBadgeClass = (index: number) => {
   if (index === 0) return 'bg-gradient-to-br from-[#F3D77A] to-[#9c7a1a] text-[#04140D] ring-2 ring-[#D4AF37]/50'
   if (index === 1) return 'bg-gradient-to-br from-slate-300 to-slate-500 text-[#04140D]'
@@ -205,7 +206,7 @@ const rankBadgeClass = (index: number) => {
   return 'bg-white/10 text-white/70'
 }
 
-// Ancho relativo de la barra de "jugados"/"pendientes" tomando el mayor de los dos como el 100%
+// Ancho relativo de la barra de partidos jugados y pendientes tomando el total de partidos como el 100%
 const matchesBarWidth = (value: number) => (value / Math.max(matchesPlayed.value, matchesPending.value, 1)) * 100
 
 // Ancho relativo de la barra de cada usuario tomando el puntaje más alto del top como el 100%
@@ -214,6 +215,7 @@ const userBarWidth = (points: number) => {
   return (points / max) * 100
 }
 
+// Carga los indicadores del dashboard
 const loadDashboard = async () => {
   isLoading.value = true
   hasError.value = false
@@ -243,6 +245,12 @@ const loadDashboard = async () => {
   }
 }
 
+// Carga los indicadores al montar la página si el usuario está logueado
+onMounted(() => {
+  if (authStore.isLoggedIn) loadDashboard()
+})
+
+// Recarga los indicadores si el usuario inicia sesión mientras está en la página
 watch(
   () => authStore.isLoggedIn,
   (loggedIn) => {

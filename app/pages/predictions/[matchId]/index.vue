@@ -236,8 +236,7 @@ const errors = ref<Record<string, string>>({})
 const homeTeam = computed(() => teams.value.find((t) => t.name === match.value?.homeTeam) ?? null)
 const awayTeam = computed(() => teams.value.find((t) => t.name === match.value?.awayTeam) ?? null)
 
-// La Final no tiene una "predicción de campeón" aparte: el ganador que se
-// predice en ese partido ES el campeón del torneo elegido
+// Determina si el partido es la final del torneo
 const isFinal = computed(() => match.value?.stage === 'Final')
 
 // Ganador implícito en un marcador (para "elegir ganador" a partir del marcador)
@@ -247,24 +246,26 @@ const predictedWinner = (homeScore: number, awayScore: number): string => {
   return homeScore > awayScore ? match.value.homeTeam : match.value.awayTeam
 }
 
+//Determina el ganador predicho a partir de los valores del formulario y de la predicción propia
 const formPredictedWinner = computed(() => predictedWinner(form.value.homePrediction, form.value.awayPrediction))
 
+// Determina el ganador predicho a partir de la predicción propia
 const ownPredictedWinner = computed(() =>
   ownPrediction.value ? predictedWinner(ownPrediction.value.homePrediction, ownPrediction.value.awayPrediction) : ''
 )
 
+// Formatea la fecha y hora del partido a un string legible
 const formatKickoff = (kickoff: Timestamp) =>
   kickoff.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+// Estilos de los badges de estado del partido
 const statusBadgeClass = (status: MatchStatus) => ({
   scheduled: 'bg-white/10 text-white/70',
   live: 'bg-red-500/20 text-red-300',
   finished: 'bg-emerald-500/20 text-emerald-300'
 }[status])
 
-// `v-model.number` en un input vacío no lo convierte a 0 ni a null: como no
-// puede parsearlo, deja el string vacío tal cual, así que hay que chequear
-// explícitamente que sea un número (no solo `== null` o `< 0`).
+// Valida que la cantidad de goles sea un número válido y esté dentro del rango permitido
 const validateGoalCount = (value: unknown): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'Ingresá una cantidad de goles.'
   if (value < 0) return 'Los goles no pueden ser negativos.'
@@ -284,6 +285,7 @@ const validate = (): boolean => {
   return Object.keys(errors.value).length === 0
 }
 
+// Maneja el envío del formulario de predicción
 const handleSubmit = async () => {
   if (!validate()) return
   if (!authStore.user || !match.value) return
@@ -311,6 +313,7 @@ const handleSubmit = async () => {
   }
 }
 
+// Carga los datos del partido, de los equipos y de la predicción propia
 const loadData = async () => {
   isLoading.value = true
   hasError.value = false

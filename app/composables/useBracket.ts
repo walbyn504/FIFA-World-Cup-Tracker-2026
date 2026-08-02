@@ -16,32 +16,28 @@ const NEXT_STAGE: Record<string, string> = {
   Semifinal: 'Final'
 }
 
-// Menor potencia de 2 que sea >= n
+// Devuelve la potencia de 2 más cercana que sea mayor o igual a n.
 const nextPowerOfTwo = (n: number): number => {
   let power = 1
   while (power < n) power *= 2
   return power
 }
 
+// Devuelve true si todos los equipos de un grupo ya jugaron todos sus partidos
 const isGroupComplete = (standings: { played: number }[]): boolean =>
   standings.length > 1 && standings.every((s) => s.played === standings.length - 1)
 
-// Mismo criterio de desempate que useStandings.ts (puntos, diferencia de gol,
-// goles a favor), para comparar terceros lugares de distintos grupos entre sí.
+// Compara dos equipos según los criterios de desempate oficiales de FIFA
 const bestThirdPlacedComparator = (a: TeamStanding, b: TeamStanding): number =>
   b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor
 
-// Arma los cruces de Dieciseisavos de UNA mitad del cuadro (16 equipos, 8
-// cruces): primero empareja líderes contra terceros (prioridad), los líderes
-// que sobran contra segundos lugares, y los segundos lugares que sobran entre
-// sí. `thirds` ya viene filtrado para que, en lo posible, ningún tercero
-// comparta grupo con los líderes de esta mitad — igual se valida acá por si
-// el balanceo entre mitades no lo pudo evitar (grupo con más terceros
-// clasificados del lado que le "tocaba" evitar).
+
+//De los mejores terceros, arma los cruces de la mitad del cuadro correspondiente.
 const buildHalfFixtures = (
   winners: TeamStanding[], runnerups: TeamStanding[], thirds: TeamStanding[]
 ): [string, string][] => {
   const usedWinners = new Set<number>()
+  // Los mejores terceros se cruzan contra líderes de grupo que NO sean de su mismo grupo
   const thirdPairs: [string, string][] = thirds.map((third) => {
     const idx = winners.findIndex((w, i) => !usedWinners.has(i) && w.group !== third.group)
     const safeIdx = idx === -1 ? winners.findIndex((_, i) => !usedWinners.has(i)) : idx
@@ -49,11 +45,13 @@ const buildHalfFixtures = (
     return [winners[safeIdx]!.teamName, third.teamName]
   })
 
+  // Los líderes de grupo que sobran se cruzan contra los segundos lugares que sobran
   const remainingWinners = winners.filter((_, i) => !usedWinners.has(i))
   const winnerRunnerupPairs: [string, string][] = remainingWinners.map((winner, i) => [
     winner.teamName, runnerups[i]!.teamName
   ])
 
+  // Los segundos lugares que sobran se cruzan entre sí
   const remainingRunnerups = runnerups.slice(remainingWinners.length)
   const runnerupPairs: [string, string][] = []
   for (let i = 0; i < remainingRunnerups.length; i += 2) {
@@ -63,10 +61,7 @@ const buildHalfFixtures = (
   return [...thirdPairs, ...winnerRunnerupPairs, ...runnerupPairs]
 }
 
-// Reparte los mejores terceros entre las dos mitades del cuadro, tratando de
-// que cada tercero caiga del lado donde su propio grupo NO tiene al líder
-// (para no arriesgar un cruce contra su propio compañero de grupo). Si un
-// lado recibe más de los que le tocan, el sobrante pasa al otro lado.
+// Divide los mejores terceros en dos mitades para que cada mitad del cuadro
 const splitQualifiedThirds = (
   qualifiedThirds: TeamStanding[], leftGroups: string[], perHalf: number
 ): { left: TeamStanding[], right: TeamStanding[] } => {
@@ -84,16 +79,13 @@ const splitQualifiedThirds = (
   return { left, right }
 }
 
-// Sede real del catálogo para la fase indicada (en vez de "Por definir").
-// Rota entre las sedes disponibles según el slot para no repetir siempre la misma.
+// Sede real del catálogo para la fase indicada
 const pickVenue = (stage: string, slot: number): { stadium: string, city: string } => {
   const options = matchVenues.filter((v) => v.stages.includes(stage))
   return options[slot % options.length] ?? options[0] ?? { stadium: 'Por definir', city: 'Por definir' }
 }
 
-// Un partido recién generado no puede quedar "programado" en el pasado. Si el
-// cálculo normal (kickoff base de la ronda anterior + offset) cae antes de
-// ahora, se corre hacia adelante conservando la hora del día.
+// Ajusta la fecha de kickoff para que siempre sea en el futuro
 const ensureFutureKickoff = (date: Date): Date => {
   const now = new Date()
   if (date.getTime() > now.getTime()) return date
@@ -105,16 +97,15 @@ const ensureFutureKickoff = (date: Date): Date => {
   return adjusted
 }
 
+// Devuelve el ganador y el perdedor de un partido, según el marcador
 const winnerOf = (match: Match): string => (match.homeScore > match.awayScore ? match.homeTeam : match.awayTeam)
 const loserOf = (match: Match): string => (match.homeScore > match.awayScore ? match.awayTeam : match.homeTeam)
 
-// Dos partidos "son el mismo cruce" si enfrentan a los mismos dos equipos,
-// sin importar el orden (local/visitante). Sirve para no generar de nuevo
-// un cruce que ya existe, y para encontrar el partido real que corresponde
-// a un casillero ya calculado de la llave.
+
 const sameMatchup = (match: Match, teamA: string, teamB: string): boolean =>
   (match.homeTeam === teamA && match.awayTeam === teamB) || (match.homeTeam === teamB && match.awayTeam === teamA)
 
+// Busca un partido en la lista de todos los partidos que coincida con la fase y los equipos indicados  
 const findMatch = (
   allMatches: (Match & { id: string })[], stage: string, homeTeam: string, awayTeam: string
 ): (Match & { id: string }) | undefined => {
@@ -122,34 +113,11 @@ const findMatch = (
   return allMatches.find((m) => m.stage === stage && sameMatchup(m, homeTeam, awayTeam))
 }
 
-// Arma la lista canónica (fija, sin depender de Firestore) de cruces del
-// primer cruce eliminatorio, una vez que TODOS los grupos ya terminaron su
-// fase de grupos (a diferencia de las rondas siguientes, acá no se puede
-// generar por par de grupos suelto: para saber qué terceros clasifican, y de
-// qué lado del cuadro cae cada uno, hace falta comparar contra los terceros
-// de TODOS los grupos).
-//
-// El cuadro se arma en dos mitades de 16 (Izquierda/Derecha): cada grupo
-// manda su líder a una mitad y su segundo lugar a la otra, así solo pueden
-// reencontrarse en la Final o en el partido por el Tercer lugar (ambos salen
-// de un cruce entre el ganador/perdedor de cada mitad). Dentro de cada mitad,
-// los líderes cruzan primero contra los mejores terceros (prioridad); los
-// líderes que sobran cruzan contra segundos lugares, y los segundos lugares
-// que sobran cruzan entre sí. El ORDEN del arreglo devuelto (mitad
-// izquierda..., mitad derecha...) es el que define la posición de cada
-// cruce en la llave para siempre: las rondas siguientes solo emparejan
-// índices consecutivos (2i, 2i+1) de esta lista, nunca dependen de fechas.
-//
-// La cantidad de grupos define el formato: con 8 grupos de 4 (32 equipos) el
-// 1ro y 2do de cada grupo ya son 16 clasificados exactos y el cruce va
-// directo a "Octavos" sin terceros; con 12 grupos de 4 (48 equipos, formato
-// real del Mundial 2026) son 24 clasificados + los 8 mejores terceros = 32 y
-// el cruce es "Dieciseisavos". Se calcula así (en vez de asumir un número
-// fijo de grupos) para que esto no se rompa si el catálogo de selecciones
-// vuelve a cambiar de tamaño.
+// Devuelve los cruces proyectados de la primera ronda eliminatoria, según la tabla de posiciones
 const computeFirstRoundFixtures = (
   standings: Record<string, TeamStanding[]>
 ): { stage: string, fixtures: [string, string][] } | null => {
+  // No hay suficientes grupos, o algún grupo no está completo, o algún grupo tiene menos de 2 equipos
   const groupLetters = Object.keys(standings).sort()
   if (groupLetters.length < 2 || groupLetters.length % 2 !== 0) return null
   if (groupLetters.some((letter) => !isGroupComplete(standings[letter]!))) return null
@@ -171,6 +139,7 @@ const computeFirstRoundFixtures = (
 
   let leftThirds: TeamStanding[] = []
   let rightThirds: TeamStanding[] = []
+  // Si hacen falta terceros, se eligen los mejores terceros y se dividen entre las dos mitades del cuadro
   if (thirdsNeeded > 0) {
     const qualifiedThirds = groupLetters
       .map((letter) => standings[letter]?.[2])
@@ -191,34 +160,29 @@ const computeFirstRoundFixtures = (
   return { stage, fixtures }
 }
 
+// Devuelve la llave proyectada completa, con todos los cruces de todas las fases.
 export interface ProjectedSlot {
   homeTeam: string
   awayTeam: string
   match?: Match & { id: string }
 }
 
-// Devuelve el ganador de un casillero solo si su partido real ya terminó;
-// si el casillero todavía no tiene partido, o el partido no terminó, el
-// casillero de la siguiente ronda queda con ese lado en blanco ("Por definir").
+// Devuelve el nombre del equipo que ganó el partido proyectado
 const finishedWinner = (slot: ProjectedSlot): string =>
   slot.match && slot.match.status === 'finished' ? winnerOf(slot.match) : ''
 
+// Devuelve el nombre del equipo que perdió el partido proyectado
 const finishedLoser = (slot: ProjectedSlot): string =>
   slot.match && slot.match.status === 'finished' ? loserOf(slot.match) : ''
 
-// Reconstruye TODA la llave (un arreglo de casilleros por fase, en el orden
-// exacto en que se dibujan) a partir únicamente de la tabla de posiciones y
-// de los resultados ya cargados — nunca del orden en que los documentos de
-// Firestore fueron creados ni de sus fechas de kickoff (que el usuario puede
-// editar libremente al marcar un partido como finalizado, por ejemplo). Así
-// la posición de cada cruce en el cuadro es siempre la misma, sin importar
-// en qué orden se resuelvan los partidos.
+// Devuelve la llave proyectada completa, con todos los cruces de todas las fases
 export const computeProjectedBracket = (
   standings: Record<string, TeamStanding[]>, allMatches: (Match & { id: string })[]
 ): Record<string, ProjectedSlot[]> => {
   const info = computeFirstRoundFixtures(standings)
   if (!info) return {}
 
+  // Llena la primera ronda con los cruces proyectados según la tabla de posiciones
   const slots: Record<string, ProjectedSlot[]> = {
     [info.stage]: info.fixtures.map(([homeTeam, awayTeam]) => ({
       homeTeam,
@@ -228,6 +192,7 @@ export const computeProjectedBracket = (
   }
 
   let fromStage = info.stage
+  // Llena las rondas siguientes con los cruces proyectados según los ganadores de la ronda anterior
   while (NEXT_STAGE[fromStage]) {
     const toStage = NEXT_STAGE[fromStage]!
     const fromSlots = slots[fromStage]!
@@ -243,6 +208,7 @@ export const computeProjectedBracket = (
     fromStage = toStage
   }
 
+  // Llena el partido de Tercer lugar según los perdedores de la semifinal
   const semiSlots = slots.Semifinal
   if (semiSlots && semiSlots.length >= 2) {
     const homeTeam = finishedLoser(semiSlots[0]!)
@@ -253,23 +219,13 @@ export const computeProjectedBracket = (
   return slots
 }
 
-// Cantidad de selecciones que ya clasificaron a la fase eliminatoria (una vez
-// que la fase de grupos termina del todo). 0 mientras los grupos no cierren.
+// Devuelve la cantidad de equipos que ya están clasificados
 export const getQualifiedTeamsCount = (standings: Record<string, TeamStanding[]>): number => {
   const info = computeFirstRoundFixtures(standings)
   return info ? info.fixtures.flat().length : 0
 }
 
-// Fases que ya se le pueden asignar a un partido NUEVO en este momento:
-// "Fase de grupos" solo mientras los grupos no hayan terminado (una vez
-// completos, ya no tiene sentido cargar más partidos de grupos a mano), y
-// cada fase eliminatoria solo una vez que la anterior esté completa (mismo
-// criterio que generateNextRound: todos sus cruces proyectados ya existen
-// como partido real y están finalizados). Sirve para que el formulario de
-// partidos no ofrezca fases que todavía no correspondan, ya que esas se
-// generan solas desde la llave. (Un partido de grupos ya existente se puede
-// seguir editando aunque los grupos hayan terminado: el formulario agrega la
-// fase propia del partido a esta lista si hace falta.)
+// Devuelve la lista de fases eliminatorias que ya se pueden jugar
 export const getUnlockedStages = (
   standings: Record<string, TeamStanding[]>,
   matches: (Match & { id: string })[]
@@ -295,12 +251,7 @@ export const getUnlockedStages = (
   return unlocked
 }
 
-// Un equipo "sigue en competencia" si todavía puede necesitar su plantilla
-// completa más adelante, aunque en este momento no tenga ningún partido real
-// "scheduled"/"live" (por ejemplo, mientras espera a que se resuelva el cruce
-// de su rival en la ronda anterior y el partido siguiente todavía no se generó).
-// Devuelve false mientras la fase de grupos no haya terminado: ahí ya alcanza
-// con la regla simple de "tiene un partido pendiente".
+// Devuelve true si el equipo todavía puede avanzar en la llave eliminatoria
 export const isTeamStillInContention = (
   teamName: string,
   standings: Record<string, TeamStanding[]>,
@@ -352,9 +303,7 @@ export const useBracket = () => {
     'Final'
   ]
 
-  // Casillero todavía sin partido real (o cuyo cruce ya se conoce pero el
-  // partido no fue creado): se muestra igual, con los equipos que ya se
-  // saben y el resto en blanco, sin persistirse en Firestore.
+  // Obtinen los cruces proyectados de todas las fases eliminatorias
   const placeholderSlotMatch = (slot: ProjectedSlot, stage: string, index: number): Match & { id: string } => ({
     id: `preview-${stage}-${index}`,
     homeTeam: slot.homeTeam,
@@ -369,6 +318,7 @@ export const useBracket = () => {
     status: 'scheduled'
   })
 
+  // Devuelve la llave proyectada completa
   const getBracket = async (): Promise<BracketRound[]> => {
     try {
       const [matches, standings] = await Promise.all([getAll<Match>('matches'), getGroupStandings()])
@@ -384,6 +334,7 @@ export const useBracket = () => {
     }
   }
 
+  // Genera automáticamente los cruces de la llave eliminatoria 
   const placeholderMatch = (
     homeTeam: string, awayTeam: string, stage: string, kickoff: Date, slot: number
   ): Match => {
@@ -402,6 +353,7 @@ export const useBracket = () => {
     }
   }
 
+  // Genera los cruces de la primera ronda eliminatoria según la tabla de posiciones
   const generateFirstRound = async (allMatches: (Match & { id: string })[]): Promise<string[]> => {
     const standings = await getGroupStandings()
     const info = computeFirstRoundFixtures(standings)
@@ -427,15 +379,7 @@ export const useBracket = () => {
     return createdCount > 0 ? [`Se generaron los cruces de ${stage}.`] : []
   }
 
-  // Genera el partido de la siguiente ronda para cada par de "fromStage" en
-  // cuanto ESE par en particular ya tiene los dos partidos finalizados — no
-  // hace falta esperar a que toda la ronda termine. En semifinales, también
-  // arma el partido de Tercer lugar con los perdedores de ese mismo par.
-  // El emparejamiento usa `projected` (calculado a partir de la tabla de
-  // posiciones y los resultados, nunca de fechas de kickoff) para que el
-  // cruce que se genera sea siempre el estructuralmente correcto, sin
-  // importar en qué orden ni con qué fecha se haya marcado cada partido
-  // como finalizado.
+  // Genera los cruces de la siguiente ronda eliminatoria según los resultados de la ronda anterior
   const generateNextRound = async (
     fromStage: string, projected: Record<string, ProjectedSlot[]>, allMatches: (Match & { id: string })[]
   ): Promise<string[]> => {
@@ -485,9 +429,7 @@ export const useBracket = () => {
     return messages
   }
 
-  // Recorre toda la llave y genera automáticamente cualquier cruce que ya
-  // esté listo (según los resultados registrados) pero todavía no exista,
-  // sin esperar a que una ronda completa termine.
+  // Genera automáticamente los cruces de la llave eliminatoria según la tabla de posiciones
   const generateBracket = async (): Promise<string[]> => {
     const messages: string[] = []
     let allMatches = await getAll<Match>('matches')
